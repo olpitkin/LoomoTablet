@@ -2,10 +2,12 @@ package com.segway.robot.TrackingSample_Phone;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
-import android.content.DialogInterface;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
@@ -20,21 +22,14 @@ import java.util.List;
 public class PoiListActivity extends ListActivity {
 
     MySQLiteHelper db = new MySQLiteHelper(this);
+    POIListViewAdapter adapter;
+
+    POI start;
+    POI end;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
-        List<POI> list = db.getAllPOI();
-
-        String[] values = new String[list.size()];
-        int i = 0;
-        for (POI poi : list) {
-            values[i] = poi.toString();
-            i++;
-        }
-
-        POIListViewAdapter adapter = new POIListViewAdapter(this,
-                android.R.layout.simple_list_item_1, list);
+        adapter = new POIListViewAdapter(this, android.R.layout.simple_list_item_1, db.getAllPOI());
         setListAdapter(adapter);
     }
 
@@ -42,30 +37,63 @@ public class PoiListActivity extends ListActivity {
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final POI poi = (POI) getListAdapter().getItem(position);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        View dialogView = layoutInflater.inflate(R.layout.poi_dialog, null);
+        dialogView.setMinimumWidth(500);
+        final AlertDialog alertD = new AlertDialog.Builder(this).create();
+        Button createPathButton = (Button) dialogView.findViewById(R.id.create_path);
+        Button createPathAButton = (Button) dialogView.findViewById(R.id.create_path_A);
+        Button createPathBButton = (Button) dialogView.findViewById(R.id.create_path_B);
 
-        builder.setTitle("Delete Poi");
-        builder.setMessage("Are you sure want to delete " + poi + " ?");
+        Button deletePoiButton = (Button) dialogView.findViewById(R.id.delete_poi);
+        Button updatePoiButton = (Button) dialogView.findViewById(R.id.update_poi);
+        Button cancelButton = (Button) dialogView.findViewById(R.id.cancel);
 
-        builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+        createPathAButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                start = poi;
+                alertD.dismiss();
+                Toast.makeText(PoiListActivity.this, "START " + poi.getType() + poi.getId(), Toast.LENGTH_SHORT).show();
+            }
+        });
 
-            public void onClick(DialogInterface dialog, int which) {
+        createPathBButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                end = poi;
+                alertD.dismiss();
+                Toast.makeText(PoiListActivity.this, "START" + poi.getType() + poi.getId(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        createPathButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Toast.makeText(PoiListActivity.this, "START" + start.getId() + "STOP" + end.getId(), Toast.LENGTH_SHORT).show();
+                db.addPath(start,end);
+                alertD.dismiss();
+            }
+        });
+
+        deletePoiButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
                 db.deletePoi(poi);
-                dialog.dismiss();
+                alertD.dismiss();
             }
         });
 
-        builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // Do nothing
-                dialog.dismiss();
+        updatePoiButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                //db.updatePoi(poi);
             }
         });
 
-        AlertDialog alert = builder.create();
-        alert.show();
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                alertD.dismiss();
+            }
+        });
+
+        alertD.setView(dialogView);
+        alertD.show();
 
     }
 }

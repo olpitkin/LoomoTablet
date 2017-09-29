@@ -47,4 +47,13 @@
         android:textSize="15sp"
         android:onClick="poiListViewClicked" />
 
+    <Button
+        android:id="@+id/PathListView"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="Mange Path"
+        android:textSize="15sp"
+        android:onClick="pathListViewClicked"
+        />
+
 </LinearLayout>

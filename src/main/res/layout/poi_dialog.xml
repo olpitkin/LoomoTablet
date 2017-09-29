@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/create_path_A"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PATH A" />
+
+    <Button
+        android:id="@+id/create_path_B"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PATH B" />
+
+    <Button
+        android:id="@+id/create_path"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CREATE PATH" />
+
+    <Button
+        android:id="@+id/delete_poi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DELETE POI" />
+
+    <Button
+        android:id="@+id/update_poi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="UPDATE POI" />
+
+    <Button
+        android:id="@+id/cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CANCEL" />
+</LinearLayout>

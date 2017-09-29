@@ -102,6 +102,9 @@ public class MainActivity extends Activity {
     public void poiListViewClicked(View v) {
         startPoiListView();
     }
+    public void pathListViewClicked(View v) {
+        startPathListView();
+    }
 
     /**
      * Start the main area description activity and pass in the user's configuration.
@@ -124,6 +127,11 @@ public class MainActivity extends Activity {
     public void startPoiListView() {
         Intent startPoiListViewIntent = new Intent(this, PoiListActivity.class);
         startActivity(startPoiListViewIntent);
+    }
+
+    public void startPathListView() {
+        Intent startPathListViewIntent = new Intent(this, PathListActivity.class);
+        startActivity(startPathListViewIntent);
     }
 
     @Override

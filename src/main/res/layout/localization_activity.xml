@@ -35,11 +35,18 @@
                 android:text=" stop " />
 
             <Button
-                android:id="@+id/save_adf_button"
+            android:id="@+id/save_adf_button"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:onClick="saveAdfClicked"
+            android:text="@string/save_adf" />
+
+            <Button
+                android:id="@+id/save_poi_button"
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
-                android:onClick="saveAdfClicked"
-                android:text="@string/save_adf" />
+                android:onClick="onClick"
+                android:text="@string/save_poi" />
 
         </LinearLayout>
 

@@ -1,12 +1,15 @@
 package com.segway.robot.TrackingSample_Phone;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.FragmentManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -23,6 +26,8 @@ import com.google.atap.tangoservice.TangoOutOfDateException;
 import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
+import com.segway.robot.TrackingSample_Phone.model.POI;
+import com.segway.robot.TrackingSample_Phone.model.Path;
 import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
 import com.segway.robot.mobile.sdk.connectivity.MobileException;
@@ -35,6 +40,7 @@ import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by Alex Pitkin on 28.09.2017.
@@ -72,17 +78,6 @@ public class LocalizationActivity extends Activity implements
 
     private SaveAdfTask mSaveAdfTask;
     private final Object mSharedLock = new Object();
-
-    class Point3D {
-        public Point3D(int width, int height, float density){
-            this.width = width;
-            this.height = height;
-            this.density = density;
-        }
-        public int width;
-        public int height;
-        public float density;
-    }
 
     public static final String USE_AREA_LEARNING =
             "com.segway.robot.TrackingSample_Phone.usearealearning";
@@ -198,9 +193,6 @@ public class LocalizationActivity extends Activity implements
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
-
-        findView();
-        disableButtons();
     }
 
     @Override
@@ -244,8 +236,8 @@ public class LocalizationActivity extends Activity implements
                     @Override
                     public void run() {
                         synchronized (LocalizationActivity.this) {
-                            setupTextViewsAndButtons(mTango, mIsLearningMode,
-                                    mIsConstantSpaceRelocalize);
+                            setupTextViewsAndButtons(mTango, mIsLearningMode, mIsConstantSpaceRelocalize);
+                            disableButtons();
                         }
                     }
                 });
@@ -426,7 +418,11 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        relocPose = (TextView) findViewById(R.id.pose0);
+        relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
+
+        mEditText = (EditText) findViewById(R.id.etIP);
+        mSendButton = (Button) findViewById(R.id.btnSend);
+        mStopButton = (Button) findViewById(R.id.btnStop);
 
         if (isLearningMode) {
             // Disable save ADF button until Tango relocalizes to the current ADF.
@@ -448,6 +444,36 @@ public class LocalizationActivity extends Activity implements
                         + fullUuidList.get(fullUuidList.size() - 1));
             }
         }
+
+        mSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                List<POI> test = db.getAllPOI();
+                mPointList = new LinkedList<PointF>();
+                for (POI poi: test){
+                    mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
+                }
+
+                byte[] messageByte = packFile();
+                if (mMessageConnection != null) {
+                    try {
+                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
+                        mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                    } catch (MobileException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        mStopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopRobot();
+            }
+        });
     }
 
     @Override
@@ -467,38 +493,49 @@ public class LocalizationActivity extends Activity implements
     public void onClick(final View v) {
         switch (v.getId()) {
 
-            case R.id.btnSend:
-                mPointList = new LinkedList<>();
-                mPointList.add(new PointF(0,0));
-                mPointList.add(new PointF(0,-1));
-                mPointList.add(new PointF(0,0));
-                byte[] messageByte = packFile();
-                if (mMessageConnection != null) {
-                    try {
-                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
-                        mMessageConnection.sendMessage(new BufferMessage(messageByte));
-                    } catch (MobileException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                break;
             case R.id.btnBind:
                 // init connection to Robot
                 initConnection();
                 break;
-            case R.id.btnStop:
-                // send STOP instruction to robot
-                stopRobot();
+            case R.id.save_poi_button:
+                createPOIDlg();
                 break;
         }
     }
 
-    private void findView() {
-        mEditText = (EditText) findViewById(R.id.etIP);
-        mSendButton = (Button) findViewById(R.id.btnSend);
-        mStopButton = (Button) findViewById(R.id.btnStop);
+    private void createPOIDlg(){
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(LocalizationActivity.this);
+        //builderSingle.setIcon(R.drawable.ic_launcher);
+        builderSingle.setTitle("Create POI");
+
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(LocalizationActivity.this,
+                android.R.layout.select_dialog_singlechoice);
+        arrayAdapter.add("Waypoint");
+        arrayAdapter.add("Door");
+        arrayAdapter.add("Stair");
+        arrayAdapter.add("Elevator");
+
+        builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String strName = arrayAdapter.getItem(which);
+                if (poses[1] != null) {
+                    POI poi = new POI (null, arrayAdapter.getItem(which), poses[1].translation[0], poses[1].translation[1]);
+                    db.addPoi(poi);
+                }
+                AlertDialog.Builder builderInner = new AlertDialog.Builder(LocalizationActivity.this);
+                builderInner.setMessage(strName);
+                builderInner.setTitle("Your POI");
+                builderInner.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog,int which) {
+                        dialog.dismiss();
+                    }
+                });
+                builderInner.show();
+            }
+        });
+        builderSingle.show();
     }
 
     private void initConnection() {
