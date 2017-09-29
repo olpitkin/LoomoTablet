@@ -1,19 +1,29 @@
 package com.segway.robot.TrackingSample_Phone;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.app.FragmentManager;
+import android.content.Intent;
 import android.graphics.PointF;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.atap.tangoservice.Tango;
+import com.google.atap.tangoservice.TangoAreaDescriptionMetaData;
+import com.google.atap.tangoservice.TangoConfig;
+import com.google.atap.tangoservice.TangoCoordinateFramePair;
+import com.google.atap.tangoservice.TangoErrorException;
+import com.google.atap.tangoservice.TangoEvent;
+import com.google.atap.tangoservice.TangoInvalidException;
+import com.google.atap.tangoservice.TangoOutOfDateException;
+import com.google.atap.tangoservice.TangoPointCloudData;
+import com.google.atap.tangoservice.TangoPoseData;
+import com.google.atap.tangoservice.TangoXyzIjData;
+import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
 import com.segway.robot.mobile.sdk.connectivity.MobileException;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
@@ -23,29 +33,45 @@ import com.segway.robot.sdk.baseconnectivity.MessageConnection;
 import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 
 import java.nio.ByteBuffer;
-import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
  * Created by Alex Pitkin on 28.09.2017.
  */
 
-public class LocalizationActivity extends Activity {
-
+public class LocalizationActivity extends Activity implements
+        SetAdfNameDialog.CallbackListener,
+        SaveAdfTask.SaveAdfListener {
+    //LOOMO
     private static final String TAG = "TrackingActivity_Phone";
-    private Draw mDraw;
-    private FrameLayout mFrameLayout;
     private EditText mEditText;
-    private TextView mTextView;
-    private Button mResetButton;
     private Button mSendButton;
     private Button mStopButton;
-    private Button mScaleButton;
     private String mRobotIP;
     private MobileMessageRouter mMobileMessageRouter = null;
     private MessageConnection mMessageConnection = null;
     private LinkedList<PointF> mPointList;
-    private float pixelToMeter = 0.01f;
+
+    //TANGO
+    private Tango mTango;
+    private TangoConfig mConfig;
+    private TangoPoseData poses[] = new TangoPoseData[3];
+
+    private TextView mUuidTextView;
+    private TextView mRelocalizationTextView;
+    private int relocCount;
+    private TextView relocPose;
+    private Button mSaveAdfButton;
+
+    private boolean mIsRelocalized;
+    private boolean mIsLearningMode;
+    private boolean mIsConstantSpaceRelocalize;
+
+    MySQLiteHelper db = new MySQLiteHelper(this);
+
+    private SaveAdfTask mSaveAdfTask;
+    private final Object mSharedLock = new Object();
 
     class Point3D {
         public Point3D(int width, int height, float density){
@@ -167,33 +193,281 @@ public class LocalizationActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.localization_activity);
 
-        // find view
+        Intent intent = getIntent();
+        mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
+        mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
+
         findView();
-
-        // init canvas
-        initCanvas();
-
-        // disable buttons
         disableButtons();
+    }
 
-        // show scale hint
-        showScale();
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Initialize Tango Service as a normal Android Service. Since we call mTango.disconnect()
+        // in onPause, this will unbind Tango Service, so every time onResume gets called we
+        // should create a new Tango object.
+        mTango = new Tango(LocalizationActivity.this, new Runnable() {
+            // Pass in a Runnable to be called from UI thread when Tango is ready; this Runnable
+            // will be running on a new thread.
+            // When Tango is ready, we can call Tango functions safely here only when there are no
+            // UI thread changes involved.
+            @Override
+            public void run() {
+                synchronized (LocalizationActivity.this) {
+                    try {
+                        mConfig = setTangoConfig(
+                                mTango, mIsLearningMode, mIsConstantSpaceRelocalize);
+                        mTango.connect(mConfig);
+                        startupTango();
+                    } catch (TangoOutOfDateException e) {
+                        Log.e(TAG, getString(R.string.tango_out_of_date_exception), e);
+                        showsToastAndFinishOnUiThread(R.string.tango_out_of_date_exception);
+                    } catch (TangoErrorException e) {
+                        Log.e(TAG, getString(R.string.tango_error), e);
+                        showsToastAndFinishOnUiThread(R.string.tango_error);
+                    } catch (TangoInvalidException e) {
+                        Log.e(TAG, getString(R.string.tango_invalid), e);
+                        showsToastAndFinishOnUiThread(R.string.tango_invalid);
+                    } catch (SecurityException e) {
+                        // Area Learning permissions are required. If they are not available,
+                        // SecurityException is thrown.
+                        Log.e(TAG, getString(R.string.no_permissions), e);
+                        showsToastAndFinishOnUiThread(R.string.no_permissions);
+                    }
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (LocalizationActivity.this) {
+                            setupTextViewsAndButtons(mTango, mIsLearningMode,
+                                    mIsConstantSpaceRelocalize);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public void onAdfNameOk(String name, String uuid) {
+        saveAdf(name);
+    }
+
+    @Override
+    public void onAdfNameCancelled() {
+        // Continue running.
+    }
+
+    public void saveAdfClicked(View view) {
+        showSetAdfNameDialog();
+    }
+
+    private void saveAdf(String adfName) {
+        mSaveAdfTask = new SaveAdfTask(this, this, mTango, adfName);
+        mSaveAdfTask.execute();
+    }
+
+    @Override
+    public void onSaveAdfFailed(String adfName) {
+        String toastMessage = String.format(
+                getResources().getString(R.string.save_adf_failed_toast_format),
+                adfName);
+        Toast.makeText(this, toastMessage, Toast.LENGTH_LONG).show();
+        mSaveAdfTask = null;
+    }
+
+    @Override
+    public void onSaveAdfSuccess(String adfName, String adfUuid) {
+        String toastMessage = String.format(
+                getResources().getString(R.string.save_adf_success_toast_format),
+                adfName, adfUuid);
+        Toast.makeText(this, toastMessage, Toast.LENGTH_LONG).show();
+        mSaveAdfTask = null;
+        finish();
+    }
+
+    private void showSetAdfNameDialog() {
+        Bundle bundle = new Bundle();
+        bundle.putString(TangoAreaDescriptionMetaData.KEY_NAME, "New ADF");
+        // UUID is generated after the ADF is saved.
+        bundle.putString(TangoAreaDescriptionMetaData.KEY_UUID, "");
+
+        FragmentManager manager = getFragmentManager();
+        SetAdfNameDialog setAdfNameDialog = new SetAdfNameDialog();
+        setAdfNameDialog.setArguments(bundle);
+        setAdfNameDialog.show(manager, "ADFNameDialog");
+    }
+
+    private void showsToastAndFinishOnUiThread(final int resId) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(LocalizationActivity.this,
+                        getString(resId), Toast.LENGTH_LONG).show();
+                finish();
+            }
+        });
+    }
+
+    private void startupTango() {
+        // Set Tango listeners for Poses Device wrt Start of Service, Device wrt
+        // ADF and Start of Service wrt ADF.
+        ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<TangoCoordinateFramePair>();
+        framePairs.add(new TangoCoordinateFramePair(
+                TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+                TangoPoseData.COORDINATE_FRAME_DEVICE));
+        framePairs.add(new TangoCoordinateFramePair(
+                TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+                TangoPoseData.COORDINATE_FRAME_DEVICE));
+        framePairs.add(new TangoCoordinateFramePair(
+                TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+                TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE));
+
+        mTango.connectListener(framePairs, new Tango.OnTangoUpdateListener() {
+
+            @Override
+            public void onPoseAvailable(TangoPoseData pose) {
+                // Make sure to have atomic access to Tango data so that UI loop doesn't interfere
+                // while Pose call back is updating the data.
+                synchronized (mSharedLock) {
+                    // Check for Device wrt ADF pose, Device wrt Start of Service pose, Start of
+                    // Service wrt ADF pose (this pose determines if the device is relocalized or
+                    // not).
+                    // 1 COORDINATE_FRAME_AREA_DESCRIPTION
+                    // 2 COORDINATE_FRAME_START_OF_SERVICE
+                    // 4 COORDINATE_FRAME_DEVICE
+                    if (pose.baseFrame == 1 && pose.targetFrame == 2 && pose.statusCode == 1){
+                        mIsRelocalized = true;
+                        relocCount++;
+                    }
+                    if (pose.baseFrame == 2 && pose.targetFrame == 4) {
+                        if (pose.statusCode == 1) {
+                            poses[0] = pose;
+                        }
+                    }
+                    if (pose.baseFrame == 1 && pose.targetFrame == 4) {
+                        if (pose.statusCode == 1) {
+                            poses[1] = pose;
+                            return;
+                        } else {
+                            mIsRelocalized = false;
+                            relocCount = 0;
+                        }
+                    }
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (mSharedLock) {
+                            mSaveAdfButton.setEnabled(mIsRelocalized);
+                            mRelocalizationTextView.setText(mIsRelocalized ? getString(R.string.localized ) + " " + relocCount : getString(R.string.not_localized));
+                            if (poses[1] != null){
+                                relocPose.setText(poses[1].toString());
+                            }
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onXyzIjAvailable(TangoXyzIjData xyzIj) {
+                // We are not using onXyzIjAvailable for this app.
+            }
+
+            @Override
+            public void onPointCloudAvailable(TangoPointCloudData xyzij) {
+                // We are not using onPointCloudAvailable for this app.
+            }
+
+            @Override
+            public void onTangoEvent(final TangoEvent event) {
+                // Ignoring TangoEvents.
+            }
+
+            @Override
+            public void onFrameAvailable(int cameraId) {
+                // We are not using onFrameAvailable for this application.
+            }
+        });
+    }
+
+    private TangoConfig setTangoConfig(Tango tango, boolean isLearningMode, boolean isLoadAdf) {
+        // Use default configuration for Tango Service.
+        TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
+        // Check if learning mode.
+        if (isLearningMode) {
+            // Set learning mode to config.
+            config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, true);
+            config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
+
+        }
+        // Check for Load ADF/Constant Space relocalization mode.
+        if (isLoadAdf) {
+            ArrayList<String> fullUuidList;
+            // Returns a list of ADFs with their UUIDs.
+            fullUuidList = tango.listAreaDescriptions();
+            // Load the latest ADF if ADFs are found.
+            if (fullUuidList.size() > 0) {
+                config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION,
+                        fullUuidList.get(fullUuidList.size() - 1));
+            }
+        }
+        return config;
+    }
+
+    private void setupTextViewsAndButtons(Tango tango, boolean isLearningMode, boolean isLoadAdf) {
+        mSaveAdfButton = (Button) findViewById(R.id.save_adf_button);
+        mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
+        mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
+        mEditText = (EditText) findViewById(R.id.etIP);
+        relocPose = (TextView) findViewById(R.id.pose0);
+
+        if (isLearningMode) {
+            // Disable save ADF button until Tango relocalizes to the current ADF.
+            mSaveAdfButton.setEnabled(false);
+        } else {
+            // Hide to save ADF button if leanring mode is off.
+            mSaveAdfButton.setVisibility(View.GONE);
+        }
+
+        if (isLoadAdf) {
+            ArrayList<String> fullUuidList;
+            // Returns a list of ADFs with their UUIDs.
+            fullUuidList = tango.listAreaDescriptions();
+            if (fullUuidList.size() == 0) {
+                mUuidTextView.setText(R.string.no_uuid);
+            } else {
+                mUuidTextView.setText(getString(R.string.number_of_adfs) + fullUuidList.size()
+                        + getString(R.string.latest_adf_is)
+                        + fullUuidList.get(fullUuidList.size() - 1));
+            }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mIsRelocalized = false;
+        synchronized (this) {
+            try {
+                mTango.disconnect();
+            } catch (TangoErrorException e) {
+                Log.e(TAG, getString(R.string.tango_error), e);
+            }
+        }
     }
 
     public void onClick(final View v) {
         switch (v.getId()) {
-            case R.id.btnReset:
-                // reset paint to empty
-                mDraw.resetPaint();
-                break;
+
             case R.id.btnSend:
-                // send point list to Robot
-                mPointList = mDraw.getPointList();
-                for (PointF p : mPointList) {
-                    Log.e("POINT", p.toString());
-                }
                 mPointList = new LinkedList<>();
                 mPointList.add(new PointF(0,0));
                 mPointList.add(new PointF(0,-1));
@@ -218,48 +492,15 @@ public class LocalizationActivity extends Activity {
                 // send STOP instruction to robot
                 stopRobot();
                 break;
-            case R.id.btnScale:
-                // modify area scale
-                final EditText et = new EditText(this);
-                new AlertDialog.Builder(this)
-                        .setTitle("Input width")
-                        .setIcon(android.R.drawable.ic_dialog_info)
-                        .setView(et)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                float fWidth = Float.parseFloat(et.getText().toString());
-                                pixelToMeter = fWidth/(float)mDraw.getCanvasWidth();
-                                showScale();
-                                initCanvas();
-                            }
-                        })
-                        .setNegativeButton("CANCEL", null)
-                        .show();
-                break;
         }
     }
 
-    // find view
     private void findView() {
-        mFrameLayout = (FrameLayout) findViewById(R.id.flMap);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mTextView = (TextView) findViewById(R.id.tvScale);
-        mResetButton = (Button) findViewById(R.id.btnReset);
         mSendButton = (Button) findViewById(R.id.btnSend);
         mStopButton = (Button) findViewById(R.id.btnStop);
-        mScaleButton = (Button) findViewById(R.id.btnScale);
     }
 
-    // init canvas for drawing
-    private void initCanvas() {
-        LocalizationActivity.Point3D pt = getWindowSize();
-        int gridWidthInPixel = (int)(1/pixelToMeter);
-        mDraw = new Draw(LocalizationActivity.this, pt.width, pt.height, pt.density, gridWidthInPixel);
-        mFrameLayout.addView(mDraw);
-    }
-
-    // init connection to Robot
     private void initConnection() {
         // get the MobileMessageRouter instance
         mMobileMessageRouter = MobileMessageRouter.getInstance();
@@ -277,7 +518,6 @@ public class LocalizationActivity extends Activity {
         }
     }
 
-    // pack file to byte[]
     private byte[] packFile() {
         ByteBuffer buffer = ByteBuffer.allocate(mPointList.size() * 2 * 4 + 4);
         // protocol: the first 4 bytes is indicator of data or STOP message
@@ -294,7 +534,6 @@ public class LocalizationActivity extends Activity {
         return messageByte;
     }
 
-    // send STOP message to robot
     public void stopRobot() {
         ByteBuffer buffer = ByteBuffer.allocate(4);
         // protocol: the first 4 bytes is indicator of data or STOP message
@@ -308,32 +547,12 @@ public class LocalizationActivity extends Activity {
         }
     }
 
-    // show area width and height
-    private void showScale() {
-        DecimalFormat decimalFormat = new DecimalFormat(".00");
-        mTextView.setText(decimalFormat.format(pixelToMeter * mDraw.getCanvasWidth()) + "X" + decimalFormat.format(pixelToMeter * mDraw.getCanvasHeight()) + "m");
-    }
-
-    // get window size
-    private LocalizationActivity.Point3D getWindowSize() {
-        DisplayMetrics metric = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metric);
-        int width = metric.widthPixels;
-        int height = metric.heightPixels;
-        float density = metric.density;
-        return new LocalizationActivity.Point3D(width, height, density);
-    }
-
-    // enable buttons
     private void enableButtons() {
-        mResetButton.setEnabled(true);
         mSendButton.setEnabled(true);
         mStopButton.setEnabled(true);
     }
 
-    // disable buttons
     private void disableButtons() {
-        mResetButton.setEnabled(false);
         mSendButton.setEnabled(false);
         mStopButton.setEnabled(false);
     }

@@ -19,51 +19,56 @@
             android:orientation="vertical"
             android:layout_width="75dp"
             android:layout_height="wrap_content">
-            <Button
-                android:id="@+id/btnReset"
-                android:text=" reset "
-                android:layout_width="60dp"
-                android:layout_height="wrap_content"
-                android:onClick="onClick"/>
 
             <Button
                 android:id="@+id/btnSend"
-                android:text=" walk "
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
-                android:onClick="onClick"/>
+                android:onClick="onClick"
+                android:text=" walk " />
 
             <Button
                 android:id="@+id/btnStop"
-                android:text=" stop "
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
-                android:onClick="onClick" />
+                android:onClick="onClick"
+                android:text=" stop " />
 
             <Button
-                android:id="@+id/btnScale"
-                android:text=" scale map "
+                android:id="@+id/save_adf_button"
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
-                android:onClick="onClick" />
+                android:onClick="saveAdfClicked"
+                android:text="@string/save_adf" />
 
-            <TextView
-                android:id="@+id/tvScale"
-                android:text="Scale"
-                android:textSize="12dp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
         </LinearLayout>
 
         <RelativeLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-            <FrameLayout
-                android:id="@+id/flMap"
+
+            <TextView
+                android:id="@+id/relocalization_textview"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-            </FrameLayout>
+                android:layout_height="wrap_content"
+                android:text="Relocalization" />
+
+            <TextView
+                android:id="@+id/relocalization_pose_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/relocalization_textview"
+                android:text="Relocalization Pose" />
+
+            <TextView
+                android:id="@+id/adf_uuid_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/relocalization_pose_textview"
+                android:text="ADF" />
 
             <EditText
                 android:id="@+id/etIP"
