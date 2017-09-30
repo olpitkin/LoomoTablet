@@ -10,7 +10,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.segway.robot.TrackingSample_Phone.model.POI;
-import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.util.POIListViewAdapter;
 
 /**
@@ -19,15 +19,14 @@ import com.segway.robot.TrackingSample_Phone.util.POIListViewAdapter;
 
 public class PoiListActivity extends ListActivity {
 
-    MySQLiteHelper db = new MySQLiteHelper(this);
     POIListViewAdapter adapter;
-
+    RepositoryPOI repositoryPOI = new RepositoryPOI();
     POI start;
     POI end;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        adapter = new POIListViewAdapter(this, android.R.layout.simple_list_item_1, db.getAllPOI());
+        adapter = new POIListViewAdapter(this, android.R.layout.simple_list_item_1, repositoryPOI.getAllPOI());
         setListAdapter(adapter);
     }
 
@@ -66,14 +65,14 @@ public class PoiListActivity extends ListActivity {
         createPathButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Toast.makeText(PoiListActivity.this, "START" + start.getId() + "STOP" + end.getId(), Toast.LENGTH_SHORT).show();
-                db.addPath(start,end);
+              //  db.addPath(start,end);
                 alertD.dismiss();
             }
         });
 
         deletePoiButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                db.deletePoi(poi);
+                repositoryPOI.deletePoi(poi);
                 alertD.dismiss();
             }
         });

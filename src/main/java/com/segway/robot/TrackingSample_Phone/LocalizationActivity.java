@@ -27,8 +27,7 @@ import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 import com.segway.robot.TrackingSample_Phone.model.POI;
-import com.segway.robot.TrackingSample_Phone.model.Path;
-import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
 import com.segway.robot.mobile.sdk.connectivity.MobileException;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
@@ -58,6 +57,7 @@ public class LocalizationActivity extends Activity implements
     private MobileMessageRouter mMobileMessageRouter = null;
     private MessageConnection mMessageConnection = null;
     private LinkedList<PointF> mPointList;
+    private RepositoryPOI repositoryPOI = new RepositoryPOI();
 
     //TANGO
     private Tango mTango;
@@ -73,8 +73,6 @@ public class LocalizationActivity extends Activity implements
     private boolean mIsRelocalized;
     private boolean mIsLearningMode;
     private boolean mIsConstantSpaceRelocalize;
-
-    MySQLiteHelper db = new MySQLiteHelper(this);
 
     private SaveAdfTask mSaveAdfTask;
     private final Object mSharedLock = new Object();
@@ -448,7 +446,7 @@ public class LocalizationActivity extends Activity implements
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                List<POI> test = db.getAllPOI();
+                List<POI> test = repositoryPOI.getAllPOI();
                 mPointList = new LinkedList<PointF>();
                 for (POI poi: test){
                     mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
@@ -521,7 +519,7 @@ public class LocalizationActivity extends Activity implements
                 String strName = arrayAdapter.getItem(which);
                 if (poses[1] != null) {
                     POI poi = new POI (null, arrayAdapter.getItem(which), poses[1].translation[0], poses[1].translation[1]);
-                    db.addPoi(poi);
+                    repositoryPOI.addPoi(poi);
                 }
                 AlertDialog.Builder builderInner = new AlertDialog.Builder(LocalizationActivity.this);
                 builderInner.setMessage(strName);
