@@ -13,8 +13,6 @@ import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
 import com.segway.robot.TrackingSample_Phone.util.POIListViewAdapter;
 
-import java.util.List;
-
 /**
  * Created by Alex Pitkin on 28.09.2017.
  */

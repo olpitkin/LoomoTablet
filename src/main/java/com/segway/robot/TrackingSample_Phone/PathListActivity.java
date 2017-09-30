@@ -2,7 +2,6 @@ package com.segway.robot.TrackingSample_Phone;
 
 import android.app.ListActivity;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.segway.robot.TrackingSample_Phone.sql.MySQLiteHelper;
 import com.segway.robot.TrackingSample_Phone.util.PathListViewAdapter;
@@ -18,8 +17,7 @@ public class PathListActivity  extends ListActivity {
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        Log.e("path", String.valueOf(db.getAllPathEntries().size()));
-        adapter = new PathListViewAdapter(this, android.R.layout.simple_list_item_1, db.getAllPathEntries());
+        adapter = new PathListViewAdapter(this, android.R.layout.simple_list_item_1, db.getAllPaths());
         setListAdapter(adapter);
     }
 

@@ -19,9 +19,9 @@ import java.util.List;
 public class MySQLiteHelper extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "PoiDB";
+    private static final String DATABASE_NAME = "LoomoDB";
 
-    private static final String TABLE_POIS = "pois";
+    private static final String TABLE_POI = "poi_table";
     private static final String TABLE_PATH = "path_table";
     // POI TABLE
     private static final String KEY_ID = "id";
@@ -34,7 +34,6 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     private static final String KEY_END = "end_id";
 
     private static final String[] COLUMNS_POI = {KEY_ID, KEY_DESCRIPTION, KEY_TYPE, KEY_X, KEY_Y};
-
     private static final String[] COLUMNS_PATH = {KEY_ID, KEY_START, KEY_END};
 
     public MySQLiteHelper(Context context) {
@@ -43,20 +42,19 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        String CREATE_POI_TABLE = "CREATE TABLE pois ( " +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "description TEXT, "+
-                "type TEXT, "+
-                "x INTEGER, " +
-                "y INTEGER" +
-                ")";
+        String CREATE_POI_TABLE = "CREATE TABLE " + TABLE_POI + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                KEY_DESCRIPTION + " TEXT, "+
+                KEY_TYPE + " TEXT, "+
+                KEY_X + " INTEGER, " +
+                KEY_Y + " INTEGER "
+                +")";
 
-        String CREATE_PATH_TABLE = "CREATE TABLE path_table ( " +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "start_id INTEGER, "+
-                "end_id INTEGER )";
+        String CREATE_PATH_TABLE = "CREATE TABLE " + TABLE_PATH + "(" +
+                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                KEY_START + " INTEGER, "+
+                KEY_END + " INTEGER )";
 
-        // create poi table
         sqLiteDatabase.execSQL(CREATE_POI_TABLE);
         sqLiteDatabase.execSQL(CREATE_PATH_TABLE);
     }
@@ -64,8 +62,8 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
 
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS pois");
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS path_table");
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_POI);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_PATH);
 
         this.onCreate(sqLiteDatabase);
     }
@@ -80,7 +78,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
         values.put(KEY_X, poi.getX());
         values.put(KEY_Y, poi.getY());
 
-        db.insert(TABLE_POIS, // table
+        db.insert(TABLE_POI, // table
                 null, //nullColumnHack
                 values); // key/value -> keys = column names/ values = column values
 
@@ -114,12 +112,39 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void addPath(Path path) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        if (path.getStart()  == null || path.getEnd() == null) {
+            throw new IllegalArgumentException("start or end");
+        }
+
+        if (getPOI(path.getStart().getId()) == null) {
+            throw new IllegalArgumentException("start");
+        }
+
+        if (getPOI(path.getEnd().getId()) == null) {
+            throw new IllegalArgumentException("end");
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_START, path.getStart().getId());
+        values.put(KEY_END, path.getEnd().getId());
+
+        db.insert(TABLE_PATH, // table
+                null, //nullColumnHack
+                values); // key/value -> keys = column names/ values = column values
+
+        db.close();
+    }
+
     public POI getPOI(int id){
 
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor =
-                db.query(TABLE_POIS, // a. table
+                db.query(TABLE_POI, // a. table
                         COLUMNS_POI, // b. column names
                         " id = ?", // c. selections
                         new String[] { String.valueOf(id) }, // d. selections args
@@ -169,7 +194,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     public List<POI> getAllPOI() {
         List<POI> pois = new LinkedList<>();
 
-        String query = "SELECT  * FROM " + TABLE_POIS;
+        String query = "SELECT  * FROM " + TABLE_POI;
 
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(query, null);
@@ -191,7 +216,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
         return pois;
     }
 
-    public List<Path> getAllPathEntries() {
+    public List<Path> getAllPaths() {
         List<Path> paths = new LinkedList<>();
 
         String query = "SELECT  * FROM " + TABLE_PATH;
@@ -217,7 +242,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 
         SQLiteDatabase db = this.getWritableDatabase();
 
-        db.delete(TABLE_POIS, //table name
+        db.delete(TABLE_POI, //table name
                 KEY_ID+" = ?",  // selections
                 new String[] { String.valueOf(poi.getId()) }); //selections args
 
