@@ -235,7 +235,7 @@ public class LocalizationActivity extends Activity implements
                     public void run() {
                         synchronized (LocalizationActivity.this) {
                             setupTextViewsAndButtons(mTango, mIsLearningMode, mIsConstantSpaceRelocalize);
-                            disableButtons();
+                            //disableButtons();
                         }
                     }
                 });
@@ -521,16 +521,6 @@ public class LocalizationActivity extends Activity implements
                     POI poi = new POI (null, arrayAdapter.getItem(which), poses[1].translation[0], poses[1].translation[1]);
                     repositoryPOI.addPoi(poi);
                 }
-                AlertDialog.Builder builderInner = new AlertDialog.Builder(LocalizationActivity.this);
-                builderInner.setMessage(strName);
-                builderInner.setTitle("Your POI");
-                builderInner.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog,int which) {
-                        dialog.dismiss();
-                    }
-                });
-                builderInner.show();
             }
         });
         builderSingle.show();

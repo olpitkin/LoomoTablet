@@ -20,7 +20,6 @@ public class  App extends Application {
         context = this.getApplicationContext();
         dbHelper = new MySQLiteHelper();
         DatabaseManager.initializeInstance(dbHelper);
-
     }
 
     public static Context getContext(){

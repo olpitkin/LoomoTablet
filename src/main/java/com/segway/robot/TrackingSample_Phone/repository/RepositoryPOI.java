@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created by olpit on 30.09.2017.
+ * Created by Alex Pitkin on 30.09.2017.
  */
 
 public class RepositoryPOI {
@@ -27,7 +27,7 @@ public class RepositoryPOI {
     private static final String[] COLUMNS_POI = {KEY_ID, KEY_DESCRIPTION, KEY_TYPE, KEY_X, KEY_Y};
 
     public static String createTable() {
-        String CREATE_POI_TABLE = "CREATE TABLE " + TABLE_POI + "(" +
+        String CREATE_POI_TABLE = "CREATE TABLE " + TABLE_POI + " (" +
                 KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 KEY_DESCRIPTION + " TEXT, "+
                 KEY_TYPE + " TEXT, "+
@@ -47,21 +47,15 @@ public class RepositoryPOI {
         values.put(KEY_Y, poi.getY());
 
         db.insert(TABLE_POI, null, values);
-        db.close();
+        DatabaseManager.getInstance().closeDatabase();
     }
 
     public POI getPOI(int id){
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
 
         Cursor cursor =
-                db.query(TABLE_POI, // a. table
-                        COLUMNS_POI, // b. column names
-                        " id = ?", // c. selections
-                        new String[] { String.valueOf(id) }, // d. selections args
-                        null, // e. group by
-                        null, // f. having
-                        null, // g. order by
-                        null); // h. limit
+                db.query(TABLE_POI, COLUMNS_POI, " id = ?", new String[] { String.valueOf(id) },
+                        null, null, null, null);
 
         if (cursor != null)
             cursor.moveToFirst();
@@ -72,13 +66,14 @@ public class RepositoryPOI {
         poi.setType(cursor.getString(2));
         poi.setX(cursor.getDouble(3));
         poi.setY(cursor.getDouble(4));
+        DatabaseManager.getInstance().closeDatabase();
 
         return poi;
     }
 
     public List<POI> getAllPOI() {
         List<POI> pois = new LinkedList<>();
-        String query = "SELECT  * FROM " + TABLE_POI;
+        String query = "SELECT * FROM " + TABLE_POI;
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         Cursor cursor = db.rawQuery(query, null);
 
@@ -95,23 +90,20 @@ public class RepositoryPOI {
                 pois.add(poi);
             } while (cursor.moveToNext());
         }
+        DatabaseManager.getInstance().closeDatabase();
+
         return pois;
     }
 
     public void deletePoi(POI poi) {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
-
-        db.delete(TABLE_POI, //table name
-                KEY_ID+" = ?",  // selections
-                new String[] { String.valueOf(poi.getId()) }); //selections args
-
-        db.close();
+        db.delete(TABLE_POI, KEY_ID+" = ?", new String[] { String.valueOf(poi.getId()) });
+        DatabaseManager.getInstance().closeDatabase();
     }
 
-    public void clearRepo() {
+    public void clearRepository() {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         db.delete(TABLE_POI, null, null);
         DatabaseManager.getInstance().closeDatabase();
     }
-
 }

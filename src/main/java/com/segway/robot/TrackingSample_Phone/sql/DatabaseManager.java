@@ -2,6 +2,7 @@ package com.segway.robot.TrackingSample_Phone.sql;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 /**
  * Created by Alex Pitkin on 30.09.2017.
@@ -44,7 +45,6 @@ public class DatabaseManager {
         if(mOpenCounter == 0) {
             // Closing database
             mDatabase.close();
-
         }
     }
 }

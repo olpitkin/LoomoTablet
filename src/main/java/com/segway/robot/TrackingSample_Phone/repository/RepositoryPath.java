@@ -12,7 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created by olpit on 30.09.2017.
+ * Created by Alex Pitkin on 30.09.2017.
  */
 
 public class RepositoryPath {
@@ -21,8 +21,9 @@ public class RepositoryPath {
     public static final String KEY_ID = "id";
     public static final String KEY_START = "start_id";
     public static final String KEY_END = "end_id";
-
     private static final String[] COLUMNS_PATH = {KEY_ID, KEY_START, KEY_END};
+
+    RepositoryPOI repositoryPOI = new RepositoryPOI();
 
     public static String createTable() {
         String CREATE_PATH_TABLE = "CREATE TABLE " + TABLE_PATH + "(" +
@@ -44,11 +45,8 @@ public class RepositoryPath {
         values.put(KEY_START, start.getId());
         values.put(KEY_END, end.getId());
 
-        db.insert(TABLE_PATH, // table
-                null, //nullColumnHack
-                values); // key/value -> keys = column names/ values = column values
-
-        db.close();
+        db.insert(TABLE_PATH, null, values);
+        DatabaseManager.getInstance().closeDatabase();
     }
 
     public void addPath(Path path) {
@@ -63,14 +61,11 @@ public class RepositoryPath {
         values.put(KEY_START, path.getStart().getId());
         values.put(KEY_END, path.getEnd().getId());
 
-        db.insert(TABLE_PATH, // table
-                null, //nullColumnHack
-                values); // key/value -> keys = column names/ values = column values
-
-        db.close();
+        db.insert(TABLE_PATH, null, values);
+        DatabaseManager.getInstance().closeDatabase();
     }
 
-    public Path getPath(int id){
+    public Path getPath(int id) {
 
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
 
@@ -89,9 +84,10 @@ public class RepositoryPath {
 
         Path path = new Path();
         path.setId(Integer.parseInt(cursor.getString(0)));
-        // path.setStart(getPOI(Integer.parseInt(cursor.getString(1))));
-        // path.setEnd(getPOI(Integer.parseInt(cursor.getString(2))));
+        path.setStart(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1))));
+        path.setEnd(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2))));
 
+        DatabaseManager.getInstance().closeDatabase();
         return path;
     }
 
@@ -108,12 +104,13 @@ public class RepositoryPath {
             do {
                 path = new Path();
                 path.setId(Integer.parseInt(cursor.getString(0)));
-                // path.setStart(getPOI(Integer.parseInt(cursor.getString(1))));
-                // path.setEnd(getPOI(Integer.parseInt(cursor.getString(2))));
+                path.setStart(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1))));
+                path.setEnd(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2))));
 
+                paths.add(path);
             } while (cursor.moveToNext());
         }
-
+        DatabaseManager.getInstance().closeDatabase();
         return paths;
     }
 
@@ -125,9 +122,14 @@ public class RepositoryPath {
                 KEY_ID+" = ?",  // selections
                 new String[] { String.valueOf(path.getId()) }); //selections args
 
-        db.close();
+        DatabaseManager.getInstance().closeDatabase();
     }
 
+    public void clearRepository() {
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+        db.delete(TABLE_PATH, null, null);
+        DatabaseManager.getInstance().closeDatabase();
+    }
 }
 
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:labelFor="@string/app_name"
@@ -12,7 +12,9 @@
         android:textOff="@string/load_adf_off"
         android:textOn="@string/load_adf_on"
         android:textSize="15sp"
-        android:onClick="loadAdfClicked" />
+        android:onClick="loadAdfClicked"
+        android:layout_above="@+id/learning_mode"
+        android:layout_alignParentStart="true" />
 
     <ToggleButton
         android:id="@+id/learning_mode"
@@ -21,7 +23,9 @@
         android:textOff="@string/learning_mode_off"
         android:textOn="@string/learning_mode_on"
         android:textSize="15sp"
-        android:onClick="learningModeClicked" />
+        android:onClick="learningModeClicked"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
 
     <Button
         android:id="@+id/start"
@@ -29,15 +33,19 @@
         android:layout_height="wrap_content"
         android:text="@string/start_config"
         android:textSize="15sp"
-        android:onClick="startClicked" />
+        android:onClick="startClicked"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
 
     <Button
-    android:id="@+id/AdfListView"
-    android:layout_width="150dp"
-    android:layout_height="wrap_content"
-    android:text="@string/manage_adfs"
-    android:textSize="15sp"
-    android:onClick="adfListViewClicked" />
+        android:id="@+id/AdfListView"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="@string/manage_adfs"
+        android:textSize="15sp"
+        android:onClick="adfListViewClicked"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true" />
 
     <Button
         android:id="@+id/PoiListView"
@@ -45,7 +53,9 @@
         android:layout_height="wrap_content"
         android:text="@string/manage_pois"
         android:textSize="15sp"
-        android:onClick="poiListViewClicked" />
+        android:onClick="poiListViewClicked"
+        android:layout_above="@+id/AdfListView"
+        android:layout_alignParentEnd="true" />
 
     <Button
         android:id="@+id/PathListView"
@@ -54,6 +64,7 @@
         android:text="Mange Path"
         android:textSize="15sp"
         android:onClick="pathListViewClicked"
-        />
+        android:layout_above="@+id/PoiListView"
+        android:layout_alignParentEnd="true" />
 
-</LinearLayout>
+</RelativeLayout>

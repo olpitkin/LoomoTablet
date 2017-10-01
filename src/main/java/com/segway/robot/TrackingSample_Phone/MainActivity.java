@@ -33,10 +33,8 @@ public class MainActivity extends Activity {
         mIsUseAreaLearning = mLearningModeToggleButton.isChecked();
         mIsLoadAdf = mLoadAdfToggleButton.isChecked();
 
-        startActivityForResult(
-                Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
+        startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
     }
-
     public void loadAdfClicked(View v) {
         mIsLoadAdf = mLoadAdfToggleButton.isChecked();
     }
@@ -55,7 +53,6 @@ public class MainActivity extends Activity {
     public void pathListViewClicked(View v) {
         startPathListView();
     }
-
     private void startAreaDescriptionActivity() {
         Intent startAdIntent = new Intent(this, LocalizationActivity.class);
         startAdIntent.putExtra(USE_AREA_LEARNING, mIsUseAreaLearning);
@@ -74,7 +71,6 @@ public class MainActivity extends Activity {
         Intent startPathListViewIntent = new Intent(this, PathListActivity.class);
         startActivity(startPathListViewIntent);
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_TANGO_PERMISSION) {

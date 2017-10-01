@@ -33,10 +33,15 @@ public class PoiListActivity extends ListActivity {
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final POI poi = (POI) getListAdapter().getItem(position);
-
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         View dialogView = layoutInflater.inflate(R.layout.poi_dialog, null);
         dialogView.setMinimumWidth(500);
+        if (adapter.getSelectedPois().contains(position)) {
+            adapter.removeSelectedPOI(position);
+        } else {
+            adapter.setSelectedIndex(position);
+        }
+
         final AlertDialog alertD = new AlertDialog.Builder(this).create();
         Button createPathButton = (Button) dialogView.findViewById(R.id.create_path);
         Button createPathAButton = (Button) dialogView.findViewById(R.id.create_path_A);
@@ -89,8 +94,8 @@ public class PoiListActivity extends ListActivity {
             }
         });
 
-        alertD.setView(dialogView);
-        alertD.show();
+        //alertD.setView(dialogView);
+       // alertD.show();
 
     }
 }
