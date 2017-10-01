@@ -101,6 +101,21 @@ public class RepositoryPOI {
         DatabaseManager.getInstance().closeDatabase();
     }
 
+    public void updatePoi(POI poi) {
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_DESCRIPTION, poi.getDescription());
+        values.put(KEY_TYPE, poi.getType());
+        values.put(KEY_X, poi.getX());
+        values.put(KEY_Y, poi.getY());
+
+        db.update(TABLE_POI, values, KEY_ID + " = ?",
+                new String[] { String.valueOf(poi.getId())});
+
+        DatabaseManager.getInstance().closeDatabase();
+    }
+
     public void clearRepository() {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         db.delete(TABLE_POI, null, null);

@@ -1,10 +1,14 @@
 package com.segway.robot.TrackingSample_Phone;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -17,85 +21,35 @@ import com.segway.robot.TrackingSample_Phone.util.POIListViewAdapter;
  * Created by Alex Pitkin on 28.09.2017.
  */
 
-public class PoiListActivity extends ListActivity {
+public class PoiListActivity extends Activity {
 
-    POIListViewAdapter adapter;
     RepositoryPOI repositoryPOI = new RepositoryPOI();
-    POI start;
-    POI end;
+
+    ListView listView;
+    POIListViewAdapter adapter;
+
+    Button deletePoiButton;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        adapter = new POIListViewAdapter(this, android.R.layout.simple_list_item_1, repositoryPOI.getAllPOI());
-        setListAdapter(adapter);
-    }
+        setContentView(R.layout.poi_list);
+        listView = (ListView) findViewById(R.id.list);
+        adapter = new POIListViewAdapter(this, repositoryPOI.getAllPOI());
+        listView.setAdapter(adapter);
 
-    @Override
-    protected void onListItemClick(ListView l, View v, int position, long id) {
-        final POI poi = (POI) getListAdapter().getItem(position);
-        LayoutInflater layoutInflater = LayoutInflater.from(this);
-        View dialogView = layoutInflater.inflate(R.layout.poi_dialog, null);
-        dialogView.setMinimumWidth(500);
-        if (adapter.getSelectedPois().contains(position)) {
-            adapter.removeSelectedPOI(position);
-        } else {
-            adapter.setSelectedIndex(position);
-        }
-
-        final AlertDialog alertD = new AlertDialog.Builder(this).create();
-        Button createPathButton = (Button) dialogView.findViewById(R.id.create_path);
-        Button createPathAButton = (Button) dialogView.findViewById(R.id.create_path_A);
-        Button createPathBButton = (Button) dialogView.findViewById(R.id.create_path_B);
-
-        Button deletePoiButton = (Button) dialogView.findViewById(R.id.delete_poi);
-        Button updatePoiButton = (Button) dialogView.findViewById(R.id.update_poi);
-        Button cancelButton = (Button) dialogView.findViewById(R.id.cancel);
-
-        createPathAButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                start = poi;
-                alertD.dismiss();
-                Toast.makeText(PoiListActivity.this, "START " + poi.getType() + poi.getId(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        createPathBButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                end = poi;
-                alertD.dismiss();
-                Toast.makeText(PoiListActivity.this, "START" + poi.getType() + poi.getId(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        createPathButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Toast.makeText(PoiListActivity.this, "START" + start.getId() + "STOP" + end.getId(), Toast.LENGTH_SHORT).show();
-              //  db.addPath(start,end);
-                alertD.dismiss();
-            }
-        });
-
+        deletePoiButton = (Button) findViewById(R.id.delete_poi);
         deletePoiButton.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View v) {
-                repositoryPOI.deletePoi(poi);
-                alertD.dismiss();
+                int size = adapter.getSelectedPois().size();
+                for (POI p : adapter.getSelectedPois()) {
+                    repositoryPOI.deletePoi(p);
+                    adapter.deletePoi(p);
+                    adapter.notifyDataSetChanged();
+                }
+                Toast toast = Toast.makeText(getApplicationContext(), size + " poi deleted", Toast.LENGTH_SHORT);
+                toast.show();
             }
         });
-
-        updatePoiButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                //db.updatePoi(poi);
-            }
-        });
-
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                alertD.dismiss();
-            }
-        });
-
-        //alertD.setView(dialogView);
-       // alertD.show();
-
     }
 }

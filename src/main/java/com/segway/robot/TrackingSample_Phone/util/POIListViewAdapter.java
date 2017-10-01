@@ -1,98 +1,133 @@
 package com.segway.robot.TrackingSample_Phone.util;
 
-import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.segway.robot.TrackingSample_Phone.R;
 import com.segway.robot.TrackingSample_Phone.model.POI;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by olpit on 28.09.2017.
+ * Created by Alex Pitkin on 28.09.2017.
  */
 
-public class POIListViewAdapter extends ArrayAdapter<POI> {
+public class POIListViewAdapter extends BaseAdapter {
 
-    private Activity activity;
+    Context mContext;
     private List<POI> poiList;
-    private List<Integer> selectedPoiList = new ArrayList<>();
+    private List<POI> filteredList;
+    private List<POI> selectedPoiList = new ArrayList<>();
     private static LayoutInflater inflater = null;
+    private RepositoryPOI repositoryPOI = new RepositoryPOI();
 
-    public POIListViewAdapter (Activity activity, int textViewResourceId, List<POI> poiList) {
-        super(activity, textViewResourceId, poiList);
-        try {
-            this.activity = activity;
+    public POIListViewAdapter (Context context, List<POI> poiList) {
+            this.mContext = context;
             this.poiList = poiList;
-
-            inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-        } catch (Exception e) {
-
-        }
-    }
-
-    public void setSelectedIndex(int ind) {
-        selectedPoiList.add(ind);
-        notifyDataSetChanged();
-    }
-
-    public List<Integer> getSelectedPois() {
-        return selectedPoiList;
-    }
-
-    public void removeSelectedPOI(int ind)
-    {
-        selectedPoiList.remove(ind);
-        notifyDataSetChanged();
-    }
-
-    public int getCount() {
-        return poiList.size();
-    }
-
-    public POI getItem(POI position) {
-        return position;
-    }
-
-    public long getItemId(int position) {
-        return position;
+            inflater =  LayoutInflater.from(mContext);
+            this.filteredList = new ArrayList<POI>();
+            this.filteredList.addAll(poiList);
     }
 
     public static class ViewHolder {
         public TextView poi_tw;
     }
 
-    public View getView(int position, View convertView, ViewGroup parent) {
-        View vi = convertView;
+    @Override
+    public int getCount() {
+        return poiList.size();
+    }
+
+    @Override
+    public POI getItem(int position) {
+        return poiList.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    public List<POI> getSelectedPois() {
+        return selectedPoiList;
+    }
+
+    public void deletePoi(POI poi) {
+        poiList.remove(poi);
+    }
+
+    public View getView(final int position, View view, ViewGroup parent) {
         final ViewHolder holder;
-        try {
-            if (convertView == null) {
-                vi = inflater.inflate(R.layout.poi_list_item, null);
-                holder = new ViewHolder();
-                holder.poi_tw = (TextView) vi.findViewById(R.id.poi);
-                vi.setTag(holder);
-            } else {
-                holder = (ViewHolder) vi.getTag();
-            }
-            holder.poi_tw.setText(poiList.get(position).toString());
-            if(!selectedPoiList.isEmpty() && selectedPoiList.contains(position))
-            {
-                holder.poi_tw.setBackgroundColor(Color.BLACK);
-            }
-            else
-            {
-                holder.poi_tw.setBackgroundColor(Color.BLUE);
-            }
-        } catch (Exception e) {
+        if (view == null) {
+            holder = new ViewHolder();
+            view = inflater.inflate(R.layout.poi_list_item, null);
+            // Locate the TextViews in listview_item.xml
+            holder.poi_tw = (TextView) view.findViewById(R.id.poi);
+            view.setTag(holder);
+        } else {
+            holder = (ViewHolder) view.getTag();
         }
-        return vi;
+        // Set the results into TextViews
+        holder.poi_tw.setText(poiList.get(position).toString());
+
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                POI poi = poiList.get(position);
+                if (selectedPoiList.contains(poi)) {
+                    selectedPoiList.remove(poi);
+                    arg0.setBackgroundColor(Color.TRANSPARENT);
+                } else {
+                    selectedPoiList.add(poi);
+                    arg0.setBackgroundColor(Color.GRAY);
+                }
+            }
+        });
+
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                final POI poi = poiList.get(position);
+                View dialogView = inflater.inflate(R.layout.poi_update_dialog, null);
+                dialogView.setMinimumWidth(500);
+                final AlertDialog alertD = new AlertDialog.Builder(mContext).create();
+                final EditText poiDesc = (EditText) dialogView.findViewById(R.id.poi_desc);
+                EditText poiX = (EditText) dialogView.findViewById(R.id.poi_x);
+                EditText poiY = (EditText) dialogView.findViewById(R.id.poi_y);
+                Button poiUpdate = (Button) dialogView.findViewById(R.id.poi_update);
+
+                poiDesc.setText(poi.getDescription(), TextView.BufferType.EDITABLE);
+                poiX.setText(String.valueOf(poi.getX()), TextView.BufferType.EDITABLE);
+                poiY.setText(String.valueOf(poi.getY()), TextView.BufferType.EDITABLE);
+
+                poiUpdate.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        poi.setDescription(poiDesc.getText().toString());
+                        repositoryPOI.updatePoi(poi);
+                        alertD.dismiss();
+                        Toast toast = Toast.makeText(mContext,"poi updated", Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                });
+
+                alertD.setView(dialogView);
+                alertD.show();
+                return false;
+            }
+        });
+
+        return view;
     }
 }
