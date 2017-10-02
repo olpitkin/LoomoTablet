@@ -125,6 +125,19 @@ public class RepositoryPath {
         DatabaseManager.getInstance().closeDatabase();
     }
 
+    public void updatePath(Path path) {
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_START, path.getStart().getId());
+        values.put(KEY_END, path.getEnd().getId());
+
+        db.update(TABLE_PATH, values, KEY_ID + " = ?",
+                new String[] { String.valueOf(path.getId())});
+
+        DatabaseManager.getInstance().closeDatabase();
+    }
+
     public void clearRepository() {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         db.delete(TABLE_PATH, null, null);

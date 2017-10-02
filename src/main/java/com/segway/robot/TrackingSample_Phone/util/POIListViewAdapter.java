@@ -56,7 +56,7 @@ public class POIListViewAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return position;
+        return poiList.get(position).getId();
     }
 
     public List<POI> getSelectedPois() {

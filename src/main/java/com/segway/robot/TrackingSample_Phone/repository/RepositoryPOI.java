@@ -16,7 +16,6 @@ import java.util.List;
 
 public class RepositoryPOI {
 
-    // POI TABLE
     public static final String TABLE_POI = "path_poi";
     public static final String KEY_ID = "id";
     public static final String KEY_DESCRIPTION = "description";
