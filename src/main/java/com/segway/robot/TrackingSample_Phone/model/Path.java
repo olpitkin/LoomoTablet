@@ -11,6 +11,7 @@ public class Path {
     private int id;
     private POI start;
     private POI end;
+    private double weight;
 
     public Path() {}
 
@@ -18,6 +19,7 @@ public class Path {
         super();
         this.start = start;
         this.end = end;
+        weight = Math.hypot(start.getX() - end.getX(), start.getY() - end.getY());
     }
 
     public POI getStart() {
@@ -44,11 +46,18 @@ public class Path {
         this.id = id;
     }
 
+    public double getWeight() {
+        return weight;
+    }
+
+    public void setWeight(double weight) {
+        this.weight = weight;
+    }
+
     public String toString() {
         if (start != null && end != null) {
             DecimalFormat threeDec = new DecimalFormat("0.000");
-            double distance = Math.hypot(start.getX() - end.getX(), start.getY() - end.getY());
-            return start.toString() + " -> " + end.toString() + " : " + threeDec.format(distance)+ " m ";
+            return start.toString() + " -> " + end.toString() + " : " + threeDec.format(weight)+ " m ";
         } else {
             return "start or end is null";
         }

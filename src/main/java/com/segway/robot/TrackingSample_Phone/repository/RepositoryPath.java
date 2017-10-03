@@ -104,8 +104,39 @@ public class RepositoryPath {
             do {
                 path = new Path();
                 path.setId(Integer.parseInt(cursor.getString(0)));
-                path.setStart(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1))));
+                POI start = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1)));
+                POI end = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2)));
+                path.setStart(start);
+                path.setEnd(end);
                 path.setEnd(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2))));
+                path.setWeight(Math.hypot(start.getX() - end.getX(), start.getY() - end.getY()));
+
+                paths.add(path);
+            } while (cursor.moveToNext());
+        }
+        DatabaseManager.getInstance().closeDatabase();
+        return paths;
+    }
+
+    public List<Path> getAllPathsFromPoi(POI poi) {
+        List<Path> paths = new LinkedList<>();
+
+        String query = "SELECT  * FROM " + TABLE_PATH + " WHERE start_id = " + poi.getId();
+
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+        Cursor cursor = db.rawQuery(query, null);
+
+        Path path = null;
+        if (cursor.moveToFirst()) {
+            do {
+                path = new Path();
+                path.setId(Integer.parseInt(cursor.getString(0)));
+                POI start = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1)));
+                POI end = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2)));
+                path.setStart(start);
+                path.setEnd(end);
+                path.setEnd(repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2))));
+                path.setWeight(Math.hypot(start.getX() - end.getX(), start.getY() - end.getY()));
 
                 paths.add(path);
             } while (cursor.moveToNext());

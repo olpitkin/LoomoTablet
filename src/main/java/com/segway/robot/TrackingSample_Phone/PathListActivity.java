@@ -15,7 +15,11 @@ import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.model.Path;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPath;
+import com.segway.robot.TrackingSample_Phone.util.DijkstraAlgorithm;
 import com.segway.robot.TrackingSample_Phone.util.PathListViewAdapter;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by Alex Pitkin on 29.09.2017.
@@ -39,7 +43,7 @@ public class PathListActivity  extends Activity {
         listView = (ListView) findViewById(R.id.list);
         adapter = new PathListViewAdapter(this, repositoryPath.getAllPaths());
         listView.setAdapter(adapter);
-
+        
         deletePathButton = (Button) findViewById(R.id.delete_path);
         deletePathButton.setOnClickListener(new View.OnClickListener() {
             @Override
