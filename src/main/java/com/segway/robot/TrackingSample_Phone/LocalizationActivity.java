@@ -28,6 +28,7 @@ import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
+import com.segway.robot.TrackingSample_Phone.util.PathFinding;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
 import com.segway.robot.mobile.sdk.connectivity.MobileException;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
@@ -81,6 +82,10 @@ public class LocalizationActivity extends Activity implements
             "com.segway.robot.TrackingSample_Phone.usearealearning";
     public static final String LOAD_ADF =
             "com.segway.robot.TrackingSample_Phone.loadadf";
+
+    //NAVIGATION
+
+    POI poiTarget;
 
     // called when service bind success or failed, register MessageConnectionListener in onBind
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
@@ -187,7 +192,6 @@ public class LocalizationActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.localization_activity);
-
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
@@ -446,23 +450,52 @@ public class LocalizationActivity extends Activity implements
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                List<POI> test = repositoryPOI.getAllPOI();
-                mPointList = new LinkedList<PointF>();
-                for (POI poi: test){
-                    mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
-                }
+                AlertDialog.Builder builderSingle = new AlertDialog.Builder(LocalizationActivity.this);
+                builderSingle.setTitle("Select Start :-");
+                final ArrayAdapter<POI> arrayAdapter = new ArrayAdapter<POI>(LocalizationActivity.this, android.R.layout.simple_selectable_list_item);
+                arrayAdapter.addAll(repositoryPOI.getAllPOI());
 
-                byte[] messageByte = packFile();
-                if (mMessageConnection != null) {
-                    try {
-                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
-                        mMessageConnection.sendMessage(new BufferMessage(messageByte));
-                    } catch (MobileException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                builderSingle.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
                     }
-                }
+                });
+
+                builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        poiTarget = arrayAdapter.getItem(which);
+                        PathFinding pathFinding = new PathFinding();
+                        mPointList = new LinkedList<>();
+                        // TO NEAREST POI
+                        POI myLocation = null;
+                        if (poses[1] != null) {
+                            myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                            mPointList.add(new PointF((float) myLocation.getX(), (float) -myLocation.getY()));
+                        }
+                        POI startPoi = pathFinding.getNearestPOI(myLocation);
+                        // PATH FINDING
+                        pathFinding.computePaths(startPoi);
+                        List<POI> path = pathFinding.getShortestPathTo(poiTarget);
+                        for (POI poi: path) {
+                            mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
+                        }
+                        // SEND DATA TO ROBOT
+                        byte[] messageByte = packFile();
+                        if (mMessageConnection != null) {
+                            try {
+                                //message sent is BufferMessage, used a txt file to test sending BufferMessage
+                                mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                            } catch (MobileException e) {
+                                e.printStackTrace();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+                builderSingle.show();
             }
         });
 
@@ -490,7 +523,6 @@ public class LocalizationActivity extends Activity implements
 
     public void onClick(final View v) {
         switch (v.getId()) {
-
             case R.id.btnBind:
                 // init connection to Robot
                 initConnection();
@@ -581,5 +613,4 @@ public class LocalizationActivity extends Activity implements
         mSendButton.setEnabled(false);
         mStopButton.setEnabled(false);
     }
-
 }

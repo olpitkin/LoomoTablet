@@ -17,25 +17,23 @@ import java.util.PriorityQueue;
  * Created by Alex Pitkin on 02.10.2017.
  */
 
-public class DijkstraAlgorithm {
+public class PathFinding {
 
     RepositoryPOI repositoryPOI  = new RepositoryPOI();
     RepositoryPath repositoryPath = new RepositoryPath();
 
     List<POI> poiList = (LinkedList<POI>) repositoryPOI.getAllPOI();
 
-    public DijkstraAlgorithm() {
-
+    //  USAGE :
+    //  computePaths(poiList.get(0)); // run Dijkstra
+    //  System.out.println("Distance to " + poiList.get(3).toString() + ": " + poiList.get(3).getMinDistance());
+    //  List<POI> path = getShortestPathTo(poiList.get(3));
+    public PathFinding() {
         for (POI poi : poiList) {
             for (Path path : repositoryPath.getAllPathsFromPoi(poi)) {
                 poi.getAdjacencies().add(path);
             }
         }
-
-        computePaths(poiList.get(0)); // run Dijkstra
-        System.out.println("Distance to " + poiList.get(3).toString() + ": " + poiList.get(3).getMinDistance());
-        List<POI> path = getShortestPathTo(poiList.get(3));
-        System.out.println("Path: " + path);
     }
 
     public void computePaths(POI source) {
@@ -79,7 +77,22 @@ public class DijkstraAlgorithm {
             path.add(vertex);
 
         Collections.reverse(path);
+        Log.i("SHORTEST PATH: ", path.toString());
         return path;
     }
 
+    public POI getNearestPOI(POI myLocation) {
+        POI nearest = null;
+        double weight = Double.POSITIVE_INFINITY;
+        double newWeight;
+        for (POI p : poiList) {
+            newWeight = Math.hypot(myLocation.getX() - p.getX(), myLocation.getY() - p.getY());
+            if (newWeight < weight) {
+                weight = newWeight;
+                nearest = p;
+            }
+        }
+        Log.i("Nearest POI:", nearest.toString());
+        return nearest;
+    }
 }
