@@ -38,6 +38,8 @@ import com.segway.robot.sdk.baseconnectivity.MessageConnection;
 import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,7 +51,8 @@ import java.util.List;
 public class LocalizationActivity extends Activity implements
         SetAdfNameDialog.CallbackListener,
         SaveAdfTask.SaveAdfListener {
-    //LOOMO
+
+    // LOOMO
     private static final String TAG = "TrackingActivity_Phone";
     private EditText mEditText;
     private Button mSendButton;
@@ -87,9 +90,7 @@ public class LocalizationActivity extends Activity implements
     //NAVIGATION
     private POI poiTarget;
     private boolean packFileInit = true;
-    private int packFileSize = 0;
 
-    // called when service bind success or failed, register MessageConnectionListener in onBind
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
         @Override
         public void onBind() {
@@ -107,12 +108,10 @@ public class LocalizationActivity extends Activity implements
         }
     };
 
-    // called when connection created, set ConnectionStateListener and MessageListener in onConnectionCreated
     private MessageRouter.MessageConnectionListener mMessageConnectionListener = new MessageRouter.MessageConnectionListener() {
         @Override
         public void onConnectionCreated(final MessageConnection connection) {
             Log.d(TAG, "onConnectionCreated: " + connection.getName());
-            //get the MessageConnection instance
             mMessageConnection = connection;
             try {
                 mMessageConnection.setListeners(mConnectionStateListener, mMessageListener);
@@ -122,12 +121,9 @@ public class LocalizationActivity extends Activity implements
         }
     };
 
-    // called when connection state change
     private MessageConnection.ConnectionStateListener mConnectionStateListener = new MessageConnection.ConnectionStateListener() {
         @Override
         public void onOpened() {
-            //connection between mobile application and robot application is opened.
-            //Now can send messages to each other.
             Log.d(TAG, "onOpened: " + mMessageConnection.getName());
             runOnUiThread(new Runnable() {
                 @Override
@@ -140,7 +136,6 @@ public class LocalizationActivity extends Activity implements
 
         @Override
         public void onClosed(String error) {
-            //connection closed with error
             Log.e(TAG, "onClosed: " + error + ";name=" + mMessageConnection.getName());
             runOnUiThread(new Runnable() {
                 @Override
@@ -152,7 +147,6 @@ public class LocalizationActivity extends Activity implements
         }
     };
 
-    // called when message received/sent/sentError
     private MessageConnection.MessageListener mMessageListener = new MessageConnection.MessageListener() {
         @Override
         public void onMessageReceived(final Message message) {
@@ -185,7 +179,6 @@ public class LocalizationActivity extends Activity implements
                 byte[] messageByte = packFile();
                 if (mMessageConnection != null) {
                     try {
-                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
                         if (messageByte != null) {
                             mMessageConnection.sendMessage(new BufferMessage(messageByte));
                         } else {
@@ -209,13 +202,11 @@ public class LocalizationActivity extends Activity implements
 
         @Override
         public void onMessageSentError(Message message, String error) {
-            //the message  that is sent failed
             Log.d(TAG, "Message send error");
         }
 
         @Override
         public void onMessageSent(Message message) {
-            //the message  that is sent successfully
             Log.d(TAG, "onMessageSent: id=" + message.getId() + ";timestamp=" + message.getTimestamp());
         }
     };
@@ -341,8 +332,6 @@ public class LocalizationActivity extends Activity implements
     }
 
     private void startupTango() {
-        // Set Tango listeners for Poses Device wrt Start of Service, Device wrt
-        // ADF and Start of Service wrt ADF.
         ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<TangoCoordinateFramePair>();
         framePairs.add(new TangoCoordinateFramePair(
                 TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
@@ -358,12 +347,7 @@ public class LocalizationActivity extends Activity implements
 
             @Override
             public void onPoseAvailable(TangoPoseData pose) {
-                // Make sure to have atomic access to Tango data so that UI loop doesn't interfere
-                // while Pose call back is updating the data.
                 synchronized (mSharedLock) {
-                    // Check for Device wrt ADF pose, Device wrt Start of Service pose, Start of
-                    // Service wrt ADF pose (this pose determines if the device is relocalized or
-                    // not).
                     // 1 COORDINATE_FRAME_AREA_DESCRIPTION
                     // 2 COORDINATE_FRAME_START_OF_SERVICE
                     // 4 COORDINATE_FRAME_DEVICE
@@ -394,7 +378,7 @@ public class LocalizationActivity extends Activity implements
                             mSaveAdfButton.setEnabled(mIsRelocalized);
                             mRelocalizationTextView.setText(mIsRelocalized ? getString(R.string.localized ) + " " + relocCount : getString(R.string.not_localized));
                             if (poses[1] != null){
-                                relocPose.setText(poses[1].toString());
+                                relocPose.setText(poseToString(poses[1]));
                             }
                         }
                     }
@@ -402,24 +386,18 @@ public class LocalizationActivity extends Activity implements
             }
 
             @Override
-            public void onXyzIjAvailable(TangoXyzIjData xyzIj) {
-                // We are not using onXyzIjAvailable for this app.
+            public void onXyzIjAvailable(TangoXyzIjData xyzIj) {}
+
+            @Override
+            public void onPointCloudAvailable(TangoPointCloudData pointCloudData) {
+                //logPointCloud(pointCloudData);
             }
 
             @Override
-            public void onPointCloudAvailable(TangoPointCloudData xyzij) {
-                // We are not using onPointCloudAvailable for this app.
-            }
+            public void onTangoEvent(final TangoEvent event) {}
 
             @Override
-            public void onTangoEvent(final TangoEvent event) {
-                // Ignoring TangoEvents.
-            }
-
-            @Override
-            public void onFrameAvailable(int cameraId) {
-                // We are not using onFrameAvailable for this application.
-            }
+            public void onFrameAvailable(int cameraId) {}
         });
     }
 
@@ -443,6 +421,11 @@ public class LocalizationActivity extends Activity implements
                         fullUuidList.get(fullUuidList.size() - 1));
             }
         }
+
+        // TODO IF DEPTH
+        //config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
+        //config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
+
         return config;
     }
 
@@ -459,10 +442,8 @@ public class LocalizationActivity extends Activity implements
         mStopButton = (Button) findViewById(R.id.btnStop);
 
         if (isLearningMode) {
-            // Disable save ADF button until Tango relocalizes to the current ADF.
             mSaveAdfButton.setEnabled(false);
         } else {
-            // Hide to save ADF button if leanring mode is off.
             mSaveAdfButton.setVisibility(View.GONE);
         }
 
@@ -503,27 +484,20 @@ public class LocalizationActivity extends Activity implements
                         // TO NEAREST POI
                         POI myLocation = null;
                         if (poses[1] != null) {
-                        //    myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-                           // mPointList.add(new PointF((float) myLocation.getX(), (float) -myLocation.getY()));
+                            myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                            //mPointList.add(new PointF((float) myLocation.getX(), (float) myLocation.getY()));
                         }
-                        // POI startPoi = pathFinding.getNearestPOI(myLocation);
+                         POI startPoi = pathFinding.getNearestPOI(myLocation);
                         // PATH FINDING
-                        //pathFinding.computePaths(startPoi);
+                        pathFinding.computePaths(startPoi);
                         List<POI> path = pathFinding.getShortestPathTo(poiTarget);
 
                         for(POI poi :  repositoryPOI.getAllPOI()) {
                            // mPointList.add(new PointF((float) poi.getX(), (float) poi.getY()));
                         }
                         for (POI poi: path) {
-                        //    mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
+                           mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
                         }
-
-
-                        // TODO ADD POINT FUNC
-                        //mPointList.add(new PointF((float) 0, (float) 0));
-                        //mPointList.add(new PointF((float) 0, (float) 3));
-                        //mPointList.add(new PointF((float) 0, (float) -3));
-                        //mPointList.add(new PointF((float) 0, (float) 3));
 
                         // SEND DATA TO ROBOT
                         byte[] messageByte = packFile();
@@ -708,5 +682,45 @@ public class LocalizationActivity extends Activity implements
     private void disableButtons() {
         mSendButton.setEnabled(false);
         mStopButton.setEnabled(false);
+    }
+
+    private void logPointCloud(TangoPointCloudData pointCloudData) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Point count: " + pointCloudData.numPoints);
+        stringBuilder.append(". Average depth (m): " +
+                calculateAveragedDepth(pointCloudData.points, pointCloudData.numPoints));
+        Log.i(TAG, stringBuilder.toString());
+    }
+
+    private float calculateAveragedDepth(FloatBuffer pointCloudBuffer, int numPoints) {
+        float totalZ = 0;
+        float averageZ = 0;
+        if (numPoints != 0) {
+            int numFloats = 4 * numPoints;
+            for (int i = 2; i < numFloats; i = i + 4) {
+                totalZ = totalZ + pointCloudBuffer.get(i);
+            }
+            averageZ = totalZ / numPoints;
+        }
+        return averageZ;
+    }
+
+    private String poseToString(TangoPoseData pose) {
+
+        StringBuilder stringBuilder = new StringBuilder();
+        DecimalFormat threeDec = new DecimalFormat("0.000");
+        float translation[] = pose.getTranslationAsFloats();
+        stringBuilder.append("Position: ( " +
+                threeDec.format(translation[0]) + " , "+
+                threeDec.format(translation[1]) + " ) \n");
+
+        float orientation[] = pose.getRotationAsFloats();
+        stringBuilder.append("Orientation: ( " +
+                threeDec.format(orientation[0]) + " , " +
+                threeDec.format(orientation[1]) + " , " +
+                threeDec.format(orientation[2]) + " , " +
+                threeDec.format(orientation[3]) + " )");
+
+        return stringBuilder.toString();
     }
 }

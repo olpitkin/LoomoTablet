@@ -145,6 +145,11 @@ public class RepositoryPath {
         return paths;
     }
 
+    public void setAdjacencies(POI poi) {
+        List<Path> paths = getAllPathsFromPoi(poi);
+        poi.setAdjacencies(paths);
+    }
+
     public void deletePath(Path path) {
 
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
