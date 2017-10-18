@@ -17,6 +17,7 @@ public class POI implements Comparable<POI> {
     private String type;
     private  double x;
     private  double y;
+    private int areaId;
 
     // Dijkstra fields
     private double minDistance = Double.POSITIVE_INFINITY;
@@ -30,7 +31,6 @@ public class POI implements Comparable<POI> {
         this.type = type;
         this.x = x;
         this.y = y;
-
     }
 
     public int getId() {
@@ -95,6 +95,14 @@ public class POI implements Comparable<POI> {
 
     public void setPrevious(POI previous) {
         this.previous = previous;
+    }
+
+    public int getAreaId() {
+        return areaId;
+    }
+
+    public void setAreaId(int areaId) {
+        this.areaId = areaId;
     }
 
     @Override

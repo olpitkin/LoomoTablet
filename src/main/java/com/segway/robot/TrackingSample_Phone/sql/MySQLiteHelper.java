@@ -13,7 +13,7 @@ import com.segway.robot.TrackingSample_Phone.repository.RepositoryPath;
 
 public class MySQLiteHelper extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     private static final String DATABASE_NAME = "LoomoDB";
 
     public MySQLiteHelper() {

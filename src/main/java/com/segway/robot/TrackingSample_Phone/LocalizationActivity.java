@@ -65,6 +65,7 @@ public class LocalizationActivity extends Activity implements
     private TangoConfig mConfig;
     private TangoPoseData poses[] = new TangoPoseData[3];
 
+    private TextView logText;
     private TextView mUuidTextView;
     private TextView mRelocalizationTextView;
     private int relocCount;
@@ -84,8 +85,9 @@ public class LocalizationActivity extends Activity implements
             "com.segway.robot.TrackingSample_Phone.loadadf";
 
     //NAVIGATION
-
-    POI poiTarget;
+    private POI poiTarget;
+    private boolean packFileInit = true;
+    private int packFileSize = 0;
 
     // called when service bind success or failed, register MessageConnectionListener in onBind
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
@@ -155,8 +157,15 @@ public class LocalizationActivity extends Activity implements
         @Override
         public void onMessageReceived(final Message message) {
             byte[] bytes = (byte[]) message.getContent();
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
-            boolean dataIgnored = buffer.getInt()==1? true:false;
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                int code = buffer.getInt();
+            boolean dataIgnored = false;
+            boolean checkPointArrived = false;
+            if (code == 1) {
+                dataIgnored = true;
+            } else if (code == 3) {
+                checkPointArrived = true;
+            }
             Log.d(TAG, "onMessageReceived: data ignored=" + dataIgnored + ";timestamp=" + message.getTimestamp());
             if(dataIgnored) {
                 LocalizationActivity.this.runOnUiThread(new Runnable() {
@@ -165,6 +174,29 @@ public class LocalizationActivity extends Activity implements
                         Toast.makeText(LocalizationActivity.this, "Robot Ignore Data", Toast.LENGTH_SHORT).show();
                     }
                 });
+            } else if (checkPointArrived) {
+                LocalizationActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(LocalizationActivity.this, "Chechpoint arrived", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                // SEND DATA TO ROBOT
+                byte[] messageByte = packFile();
+                if (mMessageConnection != null) {
+                    try {
+                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
+                        if (messageByte != null) {
+                            mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                        } else {
+                            Toast.makeText(LocalizationActivity.this, "END", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (MobileException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             } else {
                 LocalizationActivity.this.runOnUiThread(new Runnable() {
                     @Override
@@ -399,7 +431,6 @@ public class LocalizationActivity extends Activity implements
             // Set learning mode to config.
             config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, true);
             config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
-
         }
         // Check for Load ADF/Constant Space relocalization mode.
         if (isLoadAdf) {
@@ -421,6 +452,7 @@ public class LocalizationActivity extends Activity implements
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
+        logText = (TextView) findViewById(R.id.log);
 
         mEditText = (EditText) findViewById(R.id.etIP);
         mSendButton = (Button) findViewById(R.id.btnSend);
@@ -471,22 +503,36 @@ public class LocalizationActivity extends Activity implements
                         // TO NEAREST POI
                         POI myLocation = null;
                         if (poses[1] != null) {
-                            myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-                            mPointList.add(new PointF((float) myLocation.getX(), (float) -myLocation.getY()));
+                        //    myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                           // mPointList.add(new PointF((float) myLocation.getX(), (float) -myLocation.getY()));
                         }
-                        POI startPoi = pathFinding.getNearestPOI(myLocation);
+                        // POI startPoi = pathFinding.getNearestPOI(myLocation);
                         // PATH FINDING
-                        pathFinding.computePaths(startPoi);
+                        //pathFinding.computePaths(startPoi);
                         List<POI> path = pathFinding.getShortestPathTo(poiTarget);
-                        for (POI poi: path) {
-                            mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
+
+                        for(POI poi :  repositoryPOI.getAllPOI()) {
+                           // mPointList.add(new PointF((float) poi.getX(), (float) poi.getY()));
                         }
+                        for (POI poi: path) {
+                        //    mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
+                        }
+
+
+                        // TODO ADD POINT FUNC
+                        //mPointList.add(new PointF((float) 0, (float) 0));
+                        //mPointList.add(new PointF((float) 0, (float) 3));
+                        //mPointList.add(new PointF((float) 0, (float) -3));
+                        //mPointList.add(new PointF((float) 0, (float) 3));
+
                         // SEND DATA TO ROBOT
                         byte[] messageByte = packFile();
                         if (mMessageConnection != null) {
                             try {
                                 //message sent is BufferMessage, used a txt file to test sending BufferMessage
-                                mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                                if (messageByte != null) {
+                                    mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                                }
                             } catch (MobileException e) {
                                 e.printStackTrace();
                             } catch (Exception e) {
@@ -580,15 +626,65 @@ public class LocalizationActivity extends Activity implements
         // protocol: the first 4 bytes is indicator of data or STOP message
         // 1 represent tracking data, 0 represent STOP message
         buffer.putInt(1);
-        for(PointF pf : mPointList) {
-            //System.out.println(pf.x + " " + pf.y);
-            Log.d(TAG, "Send " + pf.x + "< >" + pf.y);
-            buffer.putFloat(pf.x);
-            buffer.putFloat(pf.y);
+        if (packFileInit) {
+            packFileInit = false;
+
+            PointF pf1 = mPointList.poll();
+            final String log1 = "I1 (" + pf1.x + " , " + pf1.y +")";
+            buffer.putFloat(pf1.x);
+            buffer.putFloat(pf1.y);
+
+            PointF pf2 = mPointList.getFirst();
+            final String log2 = "I2 (" + pf2.x + " , " + pf2.y +")";
+            buffer.putFloat(pf2.x);
+            buffer.putFloat(pf2.y);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    logText.setText(log1 + " -> " + log2);
+                }
+            });
+
+            buffer.flip();
+            byte[] messageByte = buffer.array();
+            return messageByte;
+        } else {
+            if (mPointList.size() < 2) {
+                //stopRobot();
+                if (mPointList != null) {
+                    mPointList.clear();
+                }
+                packFileInit = true;
+                return null;
+            }
+
+            PointF cr = new PointF((float)poses[1].translation[0],(float) poses[1].translation[1]);
+            PointF pf1 = mPointList.poll();
+            final String log1 = "S1 (" + pf1.x + " , " + pf1.y +")";
+            final String logc = "S1 (" + cr.x + " , " + cr.y +")";
+            buffer.putFloat(pf1.x);
+            buffer.putFloat(pf1.y);
+
+            PointF pf2 = mPointList.getFirst();
+            final String log2 = "S2 (" + pf2.x + " , " + pf2.y +")";
+            Log.d(TAG, log2);
+            buffer.putFloat(pf2.x);
+            buffer.putFloat(pf2.y);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    logText.setText(log1 + " corrected to : " + logc + " -> " + log2);
+                }
+            });
+
+            buffer.flip();
+            byte[] messageByte = buffer.array();
+            return messageByte;
+
+
         }
-        buffer.flip();
-        byte[] messageByte = buffer.array();
-        return messageByte;
     }
 
     public void stopRobot() {

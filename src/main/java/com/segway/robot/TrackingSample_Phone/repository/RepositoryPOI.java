@@ -22,8 +22,9 @@ public class RepositoryPOI {
     public static final String KEY_TYPE = "type";
     public static final String KEY_X = "x";
     public static final String KEY_Y = "y";
+    public static final String KEY_AREA_ID = "area_id";
 
-    private static final String[] COLUMNS_POI = {KEY_ID, KEY_DESCRIPTION, KEY_TYPE, KEY_X, KEY_Y};
+    private static final String[] COLUMNS_POI = {KEY_ID, KEY_DESCRIPTION, KEY_TYPE, KEY_X, KEY_Y, KEY_AREA_ID};
 
     public static String createTable() {
         String CREATE_POI_TABLE = "CREATE TABLE " + TABLE_POI + " (" +
@@ -31,7 +32,8 @@ public class RepositoryPOI {
                 KEY_DESCRIPTION + " TEXT, "+
                 KEY_TYPE + " TEXT, "+
                 KEY_X + " INTEGER, " +
-                KEY_Y + " INTEGER "
+                KEY_Y + " INTEGER, " +
+                KEY_AREA_ID + " INTEGER "
                 +")";
 
         return  CREATE_POI_TABLE;
@@ -44,6 +46,7 @@ public class RepositoryPOI {
         values.put(KEY_TYPE, poi.getType());
         values.put(KEY_X, poi.getX());
         values.put(KEY_Y, poi.getY());
+        values.put(KEY_AREA_ID, poi.getY());
 
         db.insert(TABLE_POI, null, values);
         DatabaseManager.getInstance().closeDatabase();
@@ -65,6 +68,7 @@ public class RepositoryPOI {
         poi.setType(cursor.getString(2));
         poi.setX(cursor.getDouble(3));
         poi.setY(cursor.getDouble(4));
+        poi.setAreaId(cursor.getInt(5));
         DatabaseManager.getInstance().closeDatabase();
 
         return poi;
@@ -85,7 +89,7 @@ public class RepositoryPOI {
                 poi.setType(cursor.getString(2));
                 poi.setX(cursor.getDouble(3));
                 poi.setY(cursor.getDouble(4));
-
+                poi.setAreaId(cursor.getInt(5));
                 pois.add(poi);
             } while (cursor.moveToNext());
         }
@@ -108,7 +112,7 @@ public class RepositoryPOI {
         values.put(KEY_TYPE, poi.getType());
         values.put(KEY_X, poi.getX());
         values.put(KEY_Y, poi.getY());
-
+        values.put(KEY_AREA_ID, poi.getAreaId());
         db.update(TABLE_POI, values, KEY_ID + " = ?",
                 new String[] { String.valueOf(poi.getId())});
 
