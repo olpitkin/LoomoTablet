@@ -176,7 +176,7 @@ public class LocalizationActivity extends Activity implements
                     }
                 });
                 // SEND DATA TO ROBOT
-                byte[] messageByte = packFile();
+                byte[] messageByte = packFileTwoPoints();
                 if (mMessageConnection != null) {
                     try {
                         if (messageByte != null) {
@@ -492,14 +492,12 @@ public class LocalizationActivity extends Activity implements
                         pathFinding.computePaths(startPoi);
                         List<POI> path = pathFinding.getShortestPathTo(poiTarget);
 
-                        for(POI poi :  repositoryPOI.getAllPOI()) {
-                           // mPointList.add(new PointF((float) poi.getX(), (float) poi.getY()));
-                        }
                         for (POI poi: path) {
                            mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
                         }
 
                         // SEND DATA TO ROBOT
+                        //byte[] messageByte = packFileTwoPoints();
                         byte[] messageByte = packFile();
                         if (mMessageConnection != null) {
                             try {
@@ -595,7 +593,7 @@ public class LocalizationActivity extends Activity implements
         }
     }
 
-    private byte[] packFile() {
+    private byte[] packFileTwoPoints() {
         ByteBuffer buffer = ByteBuffer.allocate(mPointList.size() * 2 * 4 + 4);
         // protocol: the first 4 bytes is indicator of data or STOP message
         // 1 represent tracking data, 0 represent STOP message
@@ -659,6 +657,29 @@ public class LocalizationActivity extends Activity implements
 
 
         }
+    }
+
+    private byte[] packFile() {
+        ByteBuffer buffer = ByteBuffer.allocate(mPointList.size() * 2 * 4 + 4);
+        //TODO MESSAGES!
+        buffer.putInt(1);
+        for(PointF pf : mPointList) {
+            //System.out.println(pf.x + " " + pf.y);
+            buffer.putFloat(pf.x);
+            buffer.putFloat(pf.y);
+        }
+
+        buffer.flip();
+        byte[] messageByte = buffer.array();
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+               // logText.setText("");
+            }
+        });
+
+        return messageByte;
     }
 
     public void stopRobot() {
