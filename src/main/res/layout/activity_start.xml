@@ -5,37 +5,37 @@
     android:labelFor="@string/app_name"
     android:orientation="vertical" >
 
+    <Button
+        android:id="@+id/start"
+        android:layout_width="300dp"
+        android:layout_height="70dp"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:onClick="startClicked"
+        android:text="@string/start"
+        android:textSize="15sp" />
+
     <ToggleButton
         android:id="@+id/load_adf"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:onClick="loadAdfClicked"
         android:textOff="@string/load_adf_off"
         android:textOn="@string/load_adf_on"
-        android:textSize="15sp"
-        android:onClick="loadAdfClicked"
-        android:layout_above="@+id/learning_mode"
-        android:layout_alignParentStart="true" />
+        android:textSize="15sp" />
 
     <ToggleButton
         android:id="@+id/learning_mode"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/load_adf"
+        android:onClick="learningModeClicked"
         android:textOff="@string/learning_mode_off"
         android:textOn="@string/learning_mode_on"
-        android:textSize="15sp"
-        android:onClick="learningModeClicked"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true" />
-
-    <Button
-        android:id="@+id/start"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:text="@string/start_config"
-        android:textSize="15sp"
-        android:onClick="startClicked"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
+        android:textSize="15sp" />
 
     <Button
         android:id="@+id/AdfListView"

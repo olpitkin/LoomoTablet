@@ -96,7 +96,6 @@ public class LocalizationActivity extends Activity implements
     private Button sButton;
     private Button aButton;
     private Button dButton;
-    private Button stopButton;
 
     private Button debugButton;
 
@@ -137,7 +136,6 @@ public class LocalizationActivity extends Activity implements
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    enableButtons();
                     Toast.makeText(getApplicationContext(), "connected to: " + mMessageConnection.getName(), Toast.LENGTH_SHORT).show();
                 }
             });
@@ -149,7 +147,6 @@ public class LocalizationActivity extends Activity implements
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    disableButtons();
                     Toast.makeText(getApplicationContext(), "disconnected to: " + mMessageConnection.getName(), Toast.LENGTH_SHORT).show();
                 }
             });
@@ -271,7 +268,6 @@ public class LocalizationActivity extends Activity implements
                     public void run() {
                         synchronized (LocalizationActivity.this) {
                             setupTextViewsAndButtons(mTango, mIsLearningMode, mIsConstantSpaceRelocalize);
-                            //disableButtons();
                         }
                     }
                 });
@@ -384,7 +380,6 @@ public class LocalizationActivity extends Activity implements
                     @Override
                     public void run() {
                         synchronized (mSharedLock) {
-                            mSaveAdfButton.setEnabled(mIsRelocalized);
                             mRelocalizationTextView.setText(mIsRelocalized ? getString(R.string.localized ) + " " + relocCount : getString(R.string.not_localized));
                             if (poses[1] != null){
                                 relocPose.setText(poseToString(poses[1]));
@@ -450,18 +445,17 @@ public class LocalizationActivity extends Activity implements
         mSendButton = (Button) findViewById(R.id.btnSend);
         mStopButton = (Button) findViewById(R.id.btnStop);
 
-        debugButton = (Button) findViewById(R.id.debug_button);
-
         wButton = (Button) findViewById(R.id.control_w);
         sButton = (Button) findViewById(R.id.control_s);
         aButton = (Button) findViewById(R.id.control_a);
         dButton = (Button) findViewById(R.id.control_d);
-        stopButton = (Button) findViewById(R.id.control_stop);
+
+        debugButton = (Button) findViewById(R.id.debug_button);
 
         if (isLearningMode) {
-            mSaveAdfButton.setEnabled(false);
+            mSaveAdfButton.setEnabled(true);
         } else {
-            mSaveAdfButton.setVisibility(View.GONE);
+            mSaveAdfButton.setEnabled(false);
         }
 
         if (isLoadAdf) {
@@ -481,9 +475,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                sendControl(1);
+                    sendControl(1);
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                sendControl(0);
+                    sendControl(0);
                 }
                 return true;
             }
@@ -796,16 +790,6 @@ public class LocalizationActivity extends Activity implements
             mMessageConnection.sendMessage(new BufferMessage(messageByte));
         } catch(Exception e) {
         }
-    }
-
-    private void enableButtons() {
-        mSendButton.setEnabled(true);
-        mStopButton.setEnabled(true);
-    }
-
-    private void disableButtons() {
-        mSendButton.setEnabled(false);
-        mStopButton.setEnabled(false);
     }
 
     private void logPointCloud(TangoPointCloudData pointCloudData) {
