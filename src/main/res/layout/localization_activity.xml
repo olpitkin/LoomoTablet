@@ -48,6 +48,13 @@
                 android:onClick="onClick"
                 android:text="@string/save_poi" />
 
+            <Button
+                android:id="@+id/debug_button"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:onClick="onClick"
+                android:text="Debug" />
+
         </LinearLayout>
 
         <RelativeLayout
@@ -59,12 +66,15 @@
                 android:id="@+id/relocalization_textview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Relocalization" />
+                android:text="Relocalization"
+                android:textSize="23sp"
+                />
 
             <TextView
                 android:id="@+id/relocalization_pose_textview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textSize="23sp"
                 android:layout_alignParentStart="true"
                 android:layout_below="@+id/relocalization_textview"
                 android:text="Relocalization Pose" />
@@ -72,17 +82,30 @@
             <TextView
                 android:id="@+id/adf_uuid_textview"
                 android:layout_width="wrap_content"
+                android:textSize="23sp"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_below="@+id/relocalization_pose_textview"
                 android:text="ADF" />
 
             <TextView
-                android:id="@+id/log"
+                android:id="@+id/best_path"
                 android:layout_width="wrap_content"
+                android:textSize="23sp"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_below="@+id/adf_uuid_textview"
+                android:layout_marginTop="5px"
+                android:layout_marginBottom="5px"
+                android:text="best path" />
+
+            <TextView
+                android:id="@+id/log"
+                android:textSize="23sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/best_path"
                 android:text="log" />
 
             <EditText
@@ -103,6 +126,46 @@
                 android:onClick="onClick"
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentEnd="true" />
+
+            <Button
+                android:id="@+id/control_stop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:text="Button" />
+
+            <Button
+                android:id="@+id/control_w"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/control_stop"
+                android:layout_centerHorizontal="true"
+                android:text="Button" />
+
+            <Button
+                android:id="@+id/control_s"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/control_stop"
+                android:layout_below="@+id/control_stop"
+                android:text="Button" />
+
+            <Button
+                android:id="@+id/control_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/control_s"
+                android:layout_toStartOf="@+id/control_stop"
+                android:text="Button" />
+
+            <Button
+                android:id="@+id/control_d"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/control_s"
+                android:layout_toEndOf="@+id/control_stop"
+                android:text="Button" />
 
         </RelativeLayout>
 

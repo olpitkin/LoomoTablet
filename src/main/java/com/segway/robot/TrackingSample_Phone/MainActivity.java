@@ -71,6 +71,7 @@ public class MainActivity extends Activity {
         Intent startPathListViewIntent = new Intent(this, PathListActivity.class);
         startActivity(startPathListViewIntent);
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_TANGO_PERMISSION) {

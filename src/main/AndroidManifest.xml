@@ -50,7 +50,7 @@
 
         <meta-data
             android:name="packageTo1"
-            android:value="com.segway.robot.TrackingSample_Robot"></meta-data>
+            android:value="com.segway.robot.followsample"></meta-data>
     </application>
 
 </manifest>

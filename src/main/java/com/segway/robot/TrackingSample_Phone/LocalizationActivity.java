@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -90,6 +91,14 @@ public class LocalizationActivity extends Activity implements
     //NAVIGATION
     private POI poiTarget;
     private boolean packFileInit = true;
+
+    private Button wButton;
+    private Button sButton;
+    private Button aButton;
+    private Button dButton;
+    private Button stopButton;
+
+    private Button debugButton;
 
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
         @Override
@@ -441,6 +450,14 @@ public class LocalizationActivity extends Activity implements
         mSendButton = (Button) findViewById(R.id.btnSend);
         mStopButton = (Button) findViewById(R.id.btnStop);
 
+        debugButton = (Button) findViewById(R.id.debug_button);
+
+        wButton = (Button) findViewById(R.id.control_w);
+        sButton = (Button) findViewById(R.id.control_s);
+        aButton = (Button) findViewById(R.id.control_a);
+        dButton = (Button) findViewById(R.id.control_d);
+        stopButton = (Button) findViewById(R.id.control_stop);
+
         if (isLearningMode) {
             mSaveAdfButton.setEnabled(false);
         } else {
@@ -459,6 +476,54 @@ public class LocalizationActivity extends Activity implements
                         + fullUuidList.get(fullUuidList.size() - 1));
             }
         }
+
+        wButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                sendControl(1);
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                sendControl(0);
+                }
+                return true;
+            }
+        });
+
+        sButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    sendControl(2);
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    sendControl(0);
+                }
+                return true;
+            }
+        });
+
+        aButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    sendControl(3);
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    sendControl(0);
+                }
+                return true;
+            }
+        });
+
+        dButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    sendControl(4);
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    sendControl(0);
+                }
+                return true;
+            }
+        });
 
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -521,6 +586,31 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void onClick(View v) {
                 stopRobot();
+            }
+        });
+
+        debugButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mPointList = new LinkedList<PointF>();
+                mPointList.add(new PointF(0,0));
+                mPointList.add(new PointF(0,1));
+                mPointList.add(new PointF(0,0));
+
+                byte[] messageByte = packFile();
+                if (mMessageConnection != null) {
+                    try {
+                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
+                        if (messageByte != null) {
+                            mMessageConnection.sendMessage(new BufferMessage(messageByte));
+                        }
+                    } catch (MobileException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
             }
         });
     }
@@ -664,7 +754,7 @@ public class LocalizationActivity extends Activity implements
         //TODO MESSAGES!
         buffer.putInt(1);
         for(PointF pf : mPointList) {
-            //System.out.println(pf.x + " " + pf.y);
+            System.out.println(pf.x + " " + pf.y);
             buffer.putFloat(pf.x);
             buffer.putFloat(pf.y);
         }
@@ -692,6 +782,19 @@ public class LocalizationActivity extends Activity implements
             mMessageConnection.sendMessage(new BufferMessage(messageByte));
         } catch(Exception e) {
             Log.e(TAG, "send STOP message failed", e);
+        }
+    }
+
+    public void sendControl(int c) {
+        ByteBuffer buffer = ByteBuffer.allocate(100);
+        // protocol: the first 4 bytes is indicator of data or STOP message
+        // 1 represent tracking data, 0 represent STOP message
+        buffer.putInt(c);
+        byte[] messageByte = buffer.array();
+        buffer.flip();
+        try {
+            mMessageConnection.sendMessage(new BufferMessage(messageByte));
+        } catch(Exception e) {
         }
     }
 
