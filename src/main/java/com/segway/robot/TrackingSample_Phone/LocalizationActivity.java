@@ -42,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -62,6 +63,7 @@ public class LocalizationActivity extends Activity implements
     private MobileMessageRouter mMobileMessageRouter = null;
     private MessageConnection mMessageConnection = null;
     private LinkedList<PointF> mPointList;
+    private LinkedList<POI> mPOIList;
     private RepositoryPOI repositoryPOI = new RepositoryPOI();
 
     //TANGO
@@ -89,8 +91,6 @@ public class LocalizationActivity extends Activity implements
             "com.segway.robot.TrackingSample_Phone.loadadf";
 
     //NAVIGATION
-    private POI poiTarget;
-    private boolean packFileInit = true;
 
     private Button wButton;
     private Button sButton;
@@ -98,6 +98,11 @@ public class LocalizationActivity extends Activity implements
     private Button dButton;
 
     private Button debugButton;
+
+    private POI start;
+    private POI goal;
+    private boolean moving = false;
+    private int control;
 
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
         @Override
@@ -160,13 +165,11 @@ public class LocalizationActivity extends Activity implements
                 ByteBuffer buffer = ByteBuffer.wrap(bytes);
                 int code = buffer.getInt();
             boolean dataIgnored = false;
-            boolean checkPointArrived = false;
             if (code == 1) {
                 dataIgnored = true;
             } else if (code == 3) {
-                checkPointArrived = true;
             }
-            Log.d(TAG, "onMessageReceived: data ignored=" + dataIgnored + ";timestamp=" + message.getTimestamp());
+            //Log.d(TAG, "onMessageReceived: data ignored=" + dataIgnored + ";timestamp=" + message.getTimestamp());
             if(dataIgnored) {
                 LocalizationActivity.this.runOnUiThread(new Runnable() {
                     @Override
@@ -174,28 +177,6 @@ public class LocalizationActivity extends Activity implements
                         Toast.makeText(LocalizationActivity.this, "Robot Ignore Data", Toast.LENGTH_SHORT).show();
                     }
                 });
-            } else if (checkPointArrived) {
-                LocalizationActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(LocalizationActivity.this, "Chechpoint arrived", Toast.LENGTH_SHORT).show();
-                    }
-                });
-                // SEND DATA TO ROBOT
-                byte[] messageByte = packFileTwoPoints();
-                if (mMessageConnection != null) {
-                    try {
-                        if (messageByte != null) {
-                            mMessageConnection.sendMessage(new BufferMessage(messageByte));
-                        } else {
-                            Toast.makeText(LocalizationActivity.this, "END", Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (MobileException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
             } else {
                 LocalizationActivity.this.runOnUiThread(new Runnable() {
                     @Override
@@ -475,9 +456,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    sendControl(1);
+                    sendControl(1, 100);
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    sendControl(0);
+                    sendControl(0, 100);
                 }
                 return true;
             }
@@ -487,9 +468,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    sendControl(2);
+                    sendControl(2, 100);
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    sendControl(0);
+                    sendControl(0, 100);
                 }
                 return true;
             }
@@ -499,9 +480,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    sendControl(3);
+                    sendControl(3, 100);
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    sendControl(0);
+                    sendControl(0, 100);
                 }
                 return true;
             }
@@ -511,9 +492,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    sendControl(4);
+                    sendControl(4, 100);
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    sendControl(0);
+                    sendControl(0, 100);
                 }
                 return true;
             }
@@ -537,39 +518,20 @@ public class LocalizationActivity extends Activity implements
                 builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        poiTarget = arrayAdapter.getItem(which);
+                        POI poiTarget = arrayAdapter.getItem(which);
                         PathFinding pathFinding = new PathFinding();
-                        mPointList = new LinkedList<>();
-                        // TO NEAREST POI
+                        mPOIList = new LinkedList<>();
                         POI myLocation = null;
                         if (poses[1] != null) {
                             myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-                            //mPointList.add(new PointF((float) myLocation.getX(), (float) myLocation.getY()));
+                            mPOIList.add(myLocation);
                         }
-                         POI startPoi = pathFinding.getNearestPOI(myLocation);
-                        // PATH FINDING
+                        POI startPoi = pathFinding.getNearestPOI(myLocation);
                         pathFinding.computePaths(startPoi);
                         List<POI> path = pathFinding.getShortestPathTo(poiTarget);
-
-                        for (POI poi: path) {
-                           mPointList.add(new PointF((float) poi.getX(), (float) -poi.getY()));
-                        }
-
-                        // SEND DATA TO ROBOT
-                        //byte[] messageByte = packFileTwoPoints();
-                        byte[] messageByte = packFile();
-                        if (mMessageConnection != null) {
-                            try {
-                                //message sent is BufferMessage, used a txt file to test sending BufferMessage
-                                if (messageByte != null) {
-                                    mMessageConnection.sendMessage(new BufferMessage(messageByte));
-                                }
-                            } catch (MobileException e) {
-                                e.printStackTrace();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
+                        mPOIList.addAll(path);
+                        startMoving();
+                        controlRobot();
                     }
                 });
                 builderSingle.show();
@@ -586,27 +548,101 @@ public class LocalizationActivity extends Activity implements
         debugButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mPointList = new LinkedList<PointF>();
-                mPointList.add(new PointF(0,0));
-                mPointList.add(new PointF(0,1));
-                mPointList.add(new PointF(0,0));
+                // TODO FILL POI LIST
+                 startMoving();
+                 controlRobot();
+            }
+        });
+    }
 
-                byte[] messageByte = packFile();
-                if (mMessageConnection != null) {
-                    try {
-                        //message sent is BufferMessage, used a txt file to test sending BufferMessage
-                        if (messageByte != null) {
-                            mMessageConnection.sendMessage(new BufferMessage(messageByte));
+    public void startMoving() {
+        moving = true;
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mPOIList == null || mPOIList.size() < 2) {
+                    return;
+                }
+                start = mPOIList.poll();
+                goal = mPOIList.poll();
+                while (moving) {
+                    POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                    if (myLocation.isNear(goal)) {
+                        if (mPOIList.isEmpty()) {
+                            moving = false;
+                            break;
                         }
-                    } catch (MobileException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
+                        start = goal;
+                        goal = mPOIList.poll();
+                    }
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+    }
+
+    public void controlRobot() {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                while (moving){
+                    POI goal = new POI("","",1,1);
+                    if (poses[0] != null && goal != null) {
+                        float[] q = poses[0].getRotationAsFloats();
+                        float[] myLoc = poses[0].getTranslationAsFloats();
+                        //double yaw = Math.atan2(2.0*(q[1]*q[2] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
+                        //double pitch = Math.asin(-2.0*(q[0]*q[2] - q[3]*q[1]));
+                        double roll = Math.round(Math.toDegrees(Math.atan2(2.0*(q[0]*q[1] + q[3]*q[2]), q[3]*q[3] + q[0]*q[0] - q[1]*q[1] - q[2]*q[2])));
+                        double angle =  Math.round(90 - Math.toDegrees(Math.atan2(goal.getY() - myLoc[1], goal.getX() - myLoc[0])));
+                        double angDif = angle - roll;
+
+                        final String log = " orientation : " + roll +
+                                           " angle : " + angle +
+                                           " dif : " + Math.round(angDif);
+                        printLog(log);
+                        if (angDif > 180) {
+                            angDif = 360 - angDif;
+                        }
+                        if (angDif < -180){
+                            angDif = -(360 + angDif);
+                        }
+                        // TODO ANGLES ADJ
+                        if (angDif < 5 && angDif > -5) {
+                            // GO AHEAD - NO ANG VELOCITY
+                            sendControl(3, 50);
+                            continue;
+                        } else if (angDif < 25 && angDif > -25) {
+                            // GO AHEAD WITH ANG VELOCITY
+                            if (angDif > 0) {
+                                // POSITIVE VEL
+                                sendControl(4,50);
+                                continue;
+                            } else {
+                                // NEGATIVE VEL
+                               sendControl(2, 50);
+                            }
+                        } else {
+                            if (angDif > 0) {
+                                // LEFT TURN
+                                sendControl(1, 50);
+                            } else {
+                                // RIGHT TURN
+                                sendControl(5, 50);
+                            }
+                        }
+                    }
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-
+                sendControl(0, 50);
             }
-        });
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     @Override
@@ -677,75 +713,8 @@ public class LocalizationActivity extends Activity implements
         }
     }
 
-    private byte[] packFileTwoPoints() {
-        ByteBuffer buffer = ByteBuffer.allocate(mPointList.size() * 2 * 4 + 4);
-        // protocol: the first 4 bytes is indicator of data or STOP message
-        // 1 represent tracking data, 0 represent STOP message
-        buffer.putInt(1);
-        if (packFileInit) {
-            packFileInit = false;
-
-            PointF pf1 = mPointList.poll();
-            final String log1 = "I1 (" + pf1.x + " , " + pf1.y +")";
-            buffer.putFloat(pf1.x);
-            buffer.putFloat(pf1.y);
-
-            PointF pf2 = mPointList.getFirst();
-            final String log2 = "I2 (" + pf2.x + " , " + pf2.y +")";
-            buffer.putFloat(pf2.x);
-            buffer.putFloat(pf2.y);
-
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    logText.setText(log1 + " -> " + log2);
-                }
-            });
-
-            buffer.flip();
-            byte[] messageByte = buffer.array();
-            return messageByte;
-        } else {
-            if (mPointList.size() < 2) {
-                //stopRobot();
-                if (mPointList != null) {
-                    mPointList.clear();
-                }
-                packFileInit = true;
-                return null;
-            }
-
-            PointF cr = new PointF((float)poses[1].translation[0],(float) poses[1].translation[1]);
-            PointF pf1 = mPointList.poll();
-            final String log1 = "S1 (" + pf1.x + " , " + pf1.y +")";
-            final String logc = "S1 (" + cr.x + " , " + cr.y +")";
-            buffer.putFloat(pf1.x);
-            buffer.putFloat(pf1.y);
-
-            PointF pf2 = mPointList.getFirst();
-            final String log2 = "S2 (" + pf2.x + " , " + pf2.y +")";
-            Log.d(TAG, log2);
-            buffer.putFloat(pf2.x);
-            buffer.putFloat(pf2.y);
-
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    logText.setText(log1 + " corrected to : " + logc + " -> " + log2);
-                }
-            });
-
-            buffer.flip();
-            byte[] messageByte = buffer.array();
-            return messageByte;
-
-
-        }
-    }
-
     private byte[] packFile() {
         ByteBuffer buffer = ByteBuffer.allocate(mPointList.size() * 2 * 4 + 4);
-        //TODO MESSAGES!
         buffer.putInt(1);
         for(PointF pf : mPointList) {
             System.out.println(pf.x + " " + pf.y);
@@ -779,16 +748,21 @@ public class LocalizationActivity extends Activity implements
         }
     }
 
-    public void sendControl(int c) {
-        ByteBuffer buffer = ByteBuffer.allocate(100);
+    public void sendControl(int c, int size) {
+        ByteBuffer buffer = ByteBuffer.allocate(size);
         // protocol: the first 4 bytes is indicator of data or STOP message
         // 1 represent tracking data, 0 represent STOP message
-        buffer.putInt(c);
-        byte[] messageByte = buffer.array();
-        buffer.flip();
-        try {
-            mMessageConnection.sendMessage(new BufferMessage(messageByte));
-        } catch(Exception e) {
+        //printLog("command " + c);
+        if (control != c) {
+            control = c;
+            Log.i("CONTROL", String.valueOf(c));
+            buffer.putInt(c);
+            byte[] messageByte = buffer.array();
+            buffer.flip();
+            try {
+                mMessageConnection.sendMessage(new BufferMessage(messageByte));
+            } catch(Exception e) {
+            }
         }
     }
 
@@ -831,4 +805,15 @@ public class LocalizationActivity extends Activity implements
 
         return stringBuilder.toString();
     }
+
+    private void printLog(final String log){
+        runOnUiThread(new Runnable() {
+                          @Override
+                          public void run() {
+                              logText.setText(log);
+                          }
+                      }
+        );
+    }
+
 }

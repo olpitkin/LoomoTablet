@@ -115,4 +115,15 @@ public class POI implements Comparable<POI> {
     public int compareTo(@NonNull POI other) {
         return Double.compare(minDistance, other.minDistance);
     }
+
+    public boolean isNear (POI poi) {
+        if (this.x >= poi.getX() - 0.25 && this.x <= poi.getX() + 0.25) {
+            if (this.y >= poi.getY() - 0.25 && this.y <= poi.getY() + 0.25)
+            {
+                return  true;
+            }
+            return false;
+        }
+        return false;
+    }
 }
