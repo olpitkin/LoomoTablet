@@ -38,6 +38,8 @@ import com.segway.robot.sdk.baseconnectivity.Message;
 import com.segway.robot.sdk.baseconnectivity.MessageConnection;
 import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 
+import org.w3c.dom.Text;
+
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
@@ -57,8 +59,7 @@ public class LocalizationActivity extends Activity implements
     // LOOMO
     private static final String TAG = "TrackingActivity_Phone";
     private EditText mEditText;
-    private Button mSendButton;
-    private Button mStopButton;
+
     private String mRobotIP;
     private MobileMessageRouter mMobileMessageRouter = null;
     private MessageConnection mMessageConnection = null;
@@ -74,9 +75,18 @@ public class LocalizationActivity extends Activity implements
     private TextView logText;
     private TextView mUuidTextView;
     private TextView mRelocalizationTextView;
-    private int relocCount;
     private TextView relocPose;
+    private TextView path;
+    private int relocCount;
+
     private Button mSaveAdfButton;
+    private Button mSendButton;
+    private Button mStopButton;
+    private Button wButton;
+    private Button sButton;
+    private Button aButton;
+    private Button dButton;
+    private Button debugButton;
 
     private boolean mIsRelocalized;
     private boolean mIsLearningMode;
@@ -91,14 +101,6 @@ public class LocalizationActivity extends Activity implements
             "com.segway.robot.TrackingSample_Phone.loadadf";
 
     //NAVIGATION
-
-    private Button wButton;
-    private Button sButton;
-    private Button aButton;
-    private Button dButton;
-
-    private Button debugButton;
-
     private POI start;
     private POI goal;
     private boolean moving = false;
@@ -421,6 +423,7 @@ public class LocalizationActivity extends Activity implements
         mEditText = (EditText) findViewById(R.id.etIP);
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
+        path = (TextView) findViewById(R.id.best_path);
 
         mEditText = (EditText) findViewById(R.id.etIP);
         mSendButton = (Button) findViewById(R.id.btnSend);
@@ -549,6 +552,10 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void onClick(View v) {
                 // TODO FILL POI LIST
+                mPOIList = new LinkedList<>();
+                mPOIList.add(new POI("","", 0 ,0));
+                mPOIList.add(new POI("","", 0 ,1));
+
                  startMoving();
                  controlRobot();
             }
@@ -565,15 +572,23 @@ public class LocalizationActivity extends Activity implements
                 }
                 start = mPOIList.poll();
                 goal = mPOIList.poll();
+                printPOI(goal.toString());
                 while (moving) {
                     POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
                     if (myLocation.isNear(goal)) {
                         if (mPOIList.isEmpty()) {
+                            printPOI("");
                             moving = false;
                             break;
                         }
                         start = goal;
                         goal = mPOIList.poll();
+                        printPOI(goal.toString());
+                    }
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -638,6 +653,7 @@ public class LocalizationActivity extends Activity implements
                         e.printStackTrace();
                     }
                 }
+                // STOP
                 sendControl(0, 50);
             }
         };
@@ -815,5 +831,16 @@ public class LocalizationActivity extends Activity implements
                       }
         );
     }
+
+    private void printPOI(final String p){
+        runOnUiThread(new Runnable() {
+                          @Override
+                          public void run() {
+                              path.setText(p);
+                          }
+                      }
+        );
+    }
+
 
 }
