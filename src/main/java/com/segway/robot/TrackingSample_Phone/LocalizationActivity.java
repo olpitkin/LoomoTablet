@@ -572,7 +572,7 @@ public class LocalizationActivity extends Activity implements
                 }
                 start = mPOIList.poll();
                 goal = mPOIList.poll();
-                printPOI(goal.toString());
+                printPOI("(" + goal.getX() + " , " + goal.getY() + ")");
                 while (moving) {
                     POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
                     if (myLocation.isNear(goal)) {
@@ -602,10 +602,9 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void run() {
                 while (moving){
-                    POI goal = new POI("","",1,1);
-                    if (poses[0] != null && goal != null) {
-                        float[] q = poses[0].getRotationAsFloats();
-                        float[] myLoc = poses[0].getTranslationAsFloats();
+                    if (poses[1] != null && goal != null) {
+                        float[] q = poses[1].getRotationAsFloats();
+                        float[] myLoc = poses[1].getTranslationAsFloats();
                         //double yaw = Math.atan2(2.0*(q[1]*q[2] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
                         //double pitch = Math.asin(-2.0*(q[0]*q[2] - q[3]*q[1]));
                         double roll = Math.round(Math.toDegrees(Math.atan2(2.0*(q[0]*q[1] + q[3]*q[2]), q[3]*q[3] + q[0]*q[0] - q[1]*q[1] - q[2]*q[2])));
@@ -826,7 +825,7 @@ public class LocalizationActivity extends Activity implements
         runOnUiThread(new Runnable() {
                           @Override
                           public void run() {
-                              logText.setText(log);
+                              logText.setText(log + " " + control);
                           }
                       }
         );
