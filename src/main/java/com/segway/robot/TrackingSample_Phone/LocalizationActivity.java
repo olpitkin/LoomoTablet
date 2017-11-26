@@ -31,20 +31,16 @@ import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.util.PathFinding;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
-import com.segway.robot.mobile.sdk.connectivity.MobileException;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.baseconnectivity.Message;
 import com.segway.robot.sdk.baseconnectivity.MessageConnection;
 import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 
-import org.w3c.dom.Text;
-
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -164,14 +160,27 @@ public class LocalizationActivity extends Activity implements
         @Override
         public void onMessageReceived(final Message message) {
             byte[] bytes = (byte[]) message.getContent();
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                final int code = buffer.getInt();
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+            final int code = buffer.getInt();
+
             LocalizationActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     Toast.makeText(LocalizationActivity.this, "123" + code, Toast.LENGTH_SHORT).show();
                 }
             });
+
+            switch (code) {
+                case 0:
+                    //TODO POI find tag
+                    break;
+                case 1:
+                    //TODO POI find tag
+                    break;
+                case 2:
+                    //TODO POI find tag
+                    break;
+            }
         }
 
         @Override
@@ -662,7 +671,6 @@ public class LocalizationActivity extends Activity implements
     public void onClick(final View v) {
         switch (v.getId()) {
             case R.id.btnBind:
-                // init connection to Robot
                 initConnection();
                 break;
             case R.id.save_poi_button:
