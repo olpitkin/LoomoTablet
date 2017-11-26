@@ -52,7 +52,7 @@
 
         <meta-data
             android:name="packageTo1"
-            android:value="com.segway.robot.followsample"></meta-data>
+            android:value="com.robot.olpit.loomonavigation"></meta-data>
     </application>
 
 </manifest>

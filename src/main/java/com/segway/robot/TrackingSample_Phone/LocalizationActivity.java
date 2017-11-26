@@ -165,28 +165,13 @@ public class LocalizationActivity extends Activity implements
         public void onMessageReceived(final Message message) {
             byte[] bytes = (byte[]) message.getContent();
                 ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                int code = buffer.getInt();
-            boolean dataIgnored = false;
-            if (code == 1) {
-                dataIgnored = true;
-            } else if (code == 3) {
-            }
-            //Log.d(TAG, "onMessageReceived: data ignored=" + dataIgnored + ";timestamp=" + message.getTimestamp());
-            if(dataIgnored) {
-                LocalizationActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(LocalizationActivity.this, "Robot Ignore Data", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } else {
-                LocalizationActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(LocalizationActivity.this, "Robot Start Tracking", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
+                final int code = buffer.getInt();
+            LocalizationActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(LocalizationActivity.this, "123" + code, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @Override
