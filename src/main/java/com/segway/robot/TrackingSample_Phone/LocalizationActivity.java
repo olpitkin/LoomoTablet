@@ -32,6 +32,7 @@ import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.util.PathFinding;
 import com.segway.robot.mobile.sdk.connectivity.BufferMessage;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
+import com.segway.robot.mobile.sdk.connectivity.StringMessage;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.baseconnectivity.Message;
 import com.segway.robot.sdk.baseconnectivity.MessageConnection;
@@ -159,6 +160,20 @@ public class LocalizationActivity extends Activity implements
     private MessageConnection.MessageListener mMessageListener = new MessageConnection.MessageListener() {
         @Override
         public void onMessageReceived(final Message message) {
+
+            if (message instanceof StringMessage) {
+                //message received is StringMessage
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(LocalizationActivity.this, message.getContent().toString(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+                    sendString("lets go", false);
+                    runDebug();
+
+            }
+
             byte[] bytes = (byte[]) message.getContent();
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             final int code = buffer.getInt();
@@ -166,7 +181,7 @@ public class LocalizationActivity extends Activity implements
             LocalizationActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(LocalizationActivity.this, "123" + code, Toast.LENGTH_SHORT).show();
+
                 }
             });
 
@@ -194,6 +209,17 @@ public class LocalizationActivity extends Activity implements
         }
     };
 
+    private void runDebug() {
+        mPOIList = new LinkedList<>();
+        mPOIList.add(new POI("","", 0,0));
+        mPOIList.add(new POI("","", 0,1));
+        mPOIList.add(new POI("","", 1,1));
+        mPOIList.add(new POI("","", 1,0));
+        mPOIList.add(new POI("","", 0,0));
+
+        startMoving();
+        controlRobot();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -415,6 +441,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
+        mEditText.setText("192.168.137.249");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -538,20 +565,16 @@ public class LocalizationActivity extends Activity implements
         mStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopRobot();
+             //   stopRobot();
+                //TODO interrupt
+                sendString("0", true);
             }
         });
 
         debugButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO FILL POI LIST
-                mPOIList = new LinkedList<>();
-                mPOIList.add(new POI("","", 0 ,0));
-                mPOIList.add(new POI("","", 0 ,1));
-
-                 startMoving();
-                 controlRobot();
+                runDebug();
             }
         });
     }
@@ -618,25 +641,25 @@ public class LocalizationActivity extends Activity implements
                         // TODO ANGLES ADJ
                         if (angDif < 5 && angDif > -5) {
                             // GO AHEAD - NO ANG VELOCITY
-                            sendControl(3, 50);
+                            sendString("3", true);
                             continue;
                         } else if (angDif < 25 && angDif > -25) {
                             // GO AHEAD WITH ANG VELOCITY
                             if (angDif > 0) {
                                 // POSITIVE VEL
-                                sendControl(4,50);
+                                sendString("4", true);
                                 continue;
                             } else {
                                 // NEGATIVE VEL
-                               sendControl(2, 50);
+                                sendString("2", true);
                             }
                         } else {
                             if (angDif > 0) {
                                 // LEFT TURN
-                                sendControl(1, 50);
+                                sendString("1", true);
                             } else {
                                 // RIGHT TURN
-                                sendControl(5, 50);
+                                sendString("5", true);
                             }
                         }
                     }
@@ -647,7 +670,7 @@ public class LocalizationActivity extends Activity implements
                     }
                 }
                 // STOP
-                sendControl(0, 50);
+                sendString("0", true);
             }
         };
         Thread thread = new Thread(runnable);
@@ -822,6 +845,19 @@ public class LocalizationActivity extends Activity implements
                           }
                       }
         );
+    }
+
+    private void sendString(String string, boolean control) {
+        if (control) {
+            if (this.control != Integer.parseInt(string)) {
+                this.control = Integer.parseInt(string);
+            }
+        }
+        try {
+            mMessageConnection.sendMessage(new StringMessage(string));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void printPOI(final String p){
