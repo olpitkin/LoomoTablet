@@ -65,6 +65,5 @@ dependencies {
     // GOOGLE TANGO
     compile 'com.google.tango:sdk-base:1.54'
     compile 'com.google.tango:support-base:1.54'
-
     compile 'com.github.erz05:JoyStick:1.1.0'
 }

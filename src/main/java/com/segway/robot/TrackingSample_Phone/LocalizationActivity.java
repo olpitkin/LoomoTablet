@@ -171,19 +171,11 @@ public class LocalizationActivity extends Activity implements
                 });
                     sendString("lets go", false);
                     runDebug();
-
             }
 
             byte[] bytes = (byte[]) message.getContent();
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             final int code = buffer.getInt();
-
-            LocalizationActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-
-                }
-            });
 
             switch (code) {
                 case 0:
@@ -211,11 +203,13 @@ public class LocalizationActivity extends Activity implements
 
     private void runDebug() {
         mPOIList = new LinkedList<>();
+       // mPOIList.add(new POI("","", 0.026,0.570));
+       // mPOIList.add(new POI("","", 0.052,1.846));
+       // mPOIList.add(new POI("","", -3.787,1.763));
+       // mPOIList.add(new POI("","", -2.889, -0.901));
+
         mPOIList.add(new POI("","", 0,0));
         mPOIList.add(new POI("","", 0,1));
-        mPOIList.add(new POI("","", 1,1));
-        mPOIList.add(new POI("","", 1,0));
-        mPOIList.add(new POI("","", 0,0));
 
         startMoving();
         controlRobot();
@@ -425,7 +419,8 @@ public class LocalizationActivity extends Activity implements
             // Load the latest ADF if ADFs are found.
             if (fullUuidList.size() > 0) {
                 config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION,
-                        fullUuidList.get(fullUuidList.size() - 1));
+                        //fullUuidList.get(fullUuidList.size() - 1));
+                        fullUuidList.get(0));
             }
         }
 
@@ -470,9 +465,9 @@ public class LocalizationActivity extends Activity implements
             if (fullUuidList.size() == 0) {
                 mUuidTextView.setText(R.string.no_uuid);
             } else {
-                mUuidTextView.setText(getString(R.string.number_of_adfs) + fullUuidList.size()
-                        + getString(R.string.latest_adf_is)
-                        + fullUuidList.get(fullUuidList.size() - 1));
+                mUuidTextView.setText(getString(R.string.number_of_adfs) + fullUuidList.size());
+                  //      + getString(R.string.latest_adf_is)
+                  //      + fullUuidList.get(fullUuidList.size() - 1));
             }
         }
 
@@ -591,16 +586,18 @@ public class LocalizationActivity extends Activity implements
                 goal = mPOIList.poll();
                 printPOI("(" + goal.getX() + " , " + goal.getY() + ")");
                 while (moving) {
-                    POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-                    if (myLocation.isNear(goal)) {
-                        if (mPOIList.isEmpty()) {
-                            printPOI("");
-                            moving = false;
-                            break;
+                    if (poses[1] != null) {
+                        POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                        if (myLocation.isNear(goal)) {
+                            if (mPOIList.isEmpty()) {
+                                printPOI("");
+                                moving = false;
+                                break;
+                            }
+                            start = goal;
+                            goal = mPOIList.poll();
+                            printPOI(goal.toString());
                         }
-                        start = goal;
-                        goal = mPOIList.poll();
-                        printPOI(goal.toString());
                     }
                     try {
                         Thread.sleep(10);
@@ -626,24 +623,28 @@ public class LocalizationActivity extends Activity implements
                         //double pitch = Math.asin(-2.0*(q[0]*q[2] - q[3]*q[1]));
                         double roll = Math.round(Math.toDegrees(Math.atan2(2.0*(q[0]*q[1] + q[3]*q[2]), q[3]*q[3] + q[0]*q[0] - q[1]*q[1] - q[2]*q[2])));
                         double angle =  Math.round(90 - Math.toDegrees(Math.atan2(goal.getY() - myLoc[1], goal.getX() - myLoc[0])));
-                        double angDif = angle - roll;
+                        double angDifDirty = angle - roll;
+                        double angDif = angDifDirty;
 
-                        final String log = " orientation : " + roll +
-                                           " angle : " + angle +
-                                           " dif : " + Math.round(angDif);
+                        if (angDifDirty > 180) {
+                            angDif = 360 - angDifDirty;
+                        }
+                        else if (angDifDirty < -180){
+                            angDif = -(360 + angDifDirty);
+                        }
+
+                        final String log = " orientation: " + roll +
+                                " angle: " + angle +
+                                " dif: " + Math.round(angDifDirty) +
+                                " dif2:" + Math.round(angDif);
+
                         printLog(log);
-                        if (angDif > 180) {
-                            angDif = 360 - angDif;
-                        }
-                        if (angDif < -180){
-                            angDif = -(360 + angDif);
-                        }
                         // TODO ANGLES ADJ
-                        if (angDif < 5 && angDif > -5) {
+                        if (angDif < 3 && angDif > -3) {
                             // GO AHEAD - NO ANG VELOCITY
                             sendString("3", true);
                             continue;
-                        } else if (angDif < 25 && angDif > -25) {
+                        } else if (angDif < 7 && angDif > -7) {
                             // GO AHEAD WITH ANG VELOCITY
                             if (angDif > 0) {
                                 // POSITIVE VEL
