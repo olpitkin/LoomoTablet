@@ -119,6 +119,34 @@ public class RepositoryPOI {
         DatabaseManager.getInstance().closeDatabase();
     }
 
+    public List<POI> getPOIonDescription(String description) {
+
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+        List<POI> poiList = new LinkedList<>();
+        Cursor cursor =
+                db.query(TABLE_POI, // a. table
+                        COLUMNS_POI, // b. column names
+                        " description = ?", // c. selections
+                        new String[] { String.valueOf(description) }, // d. selections args
+                        null, // e. group by
+                        null, // f. having
+                        null, // g. order by
+                        null); // h. limit
+        if (cursor.moveToFirst()){
+            do {
+                POI poi = new POI();
+                poi.setId(cursor.getInt(0));
+                poi.setDescription(cursor.getString(1));
+                poi.setType(cursor.getString(2));
+                poi.setX(cursor.getDouble(3));
+                poi.setY(cursor.getDouble(4));
+                poiList.add(poi);
+            } while (cursor.moveToNext());
+        }
+        DatabaseManager.getInstance().closeDatabase();
+        return poiList;
+    }
+
     public void clearRepository() {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         db.delete(TABLE_POI, null, null);

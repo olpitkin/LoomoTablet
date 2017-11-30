@@ -103,8 +103,8 @@ public class POIListViewAdapter extends BaseAdapter {
                 dialogView.setMinimumWidth(500);
                 final AlertDialog alertD = new AlertDialog.Builder(mContext).create();
                 final EditText poiDesc = (EditText) dialogView.findViewById(R.id.poi_desc);
-                EditText poiX = (EditText) dialogView.findViewById(R.id.poi_x);
-                EditText poiY = (EditText) dialogView.findViewById(R.id.poi_y);
+                final EditText poiX = (EditText) dialogView.findViewById(R.id.poi_x);
+                final EditText poiY = (EditText) dialogView.findViewById(R.id.poi_y);
                 Button poiUpdate = (Button) dialogView.findViewById(R.id.poi_update);
 
                 poiDesc.setText(poi.getDescription(), TextView.BufferType.EDITABLE);
@@ -115,6 +115,8 @@ public class POIListViewAdapter extends BaseAdapter {
                     @Override
                     public void onClick(View v) {
                         poi.setDescription(poiDesc.getText().toString());
+                        poi.setX(Double.parseDouble(poiX.getText().toString()));
+                        poi.setY(Double.parseDouble(poiY.getText().toString()));
                         repositoryPOI.updatePoi(poi);
                         alertD.dismiss();
                         Toast toast = Toast.makeText(mContext,"poi updated", Toast.LENGTH_SHORT);
