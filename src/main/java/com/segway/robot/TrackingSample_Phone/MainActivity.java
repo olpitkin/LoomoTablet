@@ -11,7 +11,7 @@ import com.google.atap.tangoservice.Tango;
 
 public class MainActivity extends Activity {
 
-    public static final String USE_AREA_LEARNING = "com.projecttango.examples.java.helloareadescription.usearealearning";
+    public static final String USE_AREA_LEARNING = "com.projecttango.examplFes.java.helloareadescription.usearealearning";
     public static final String LOAD_ADF = "com.projecttango.examples.java.helloareadescription.loadadf";
     public static final int REQUEST_CODE_TANGO_PERMISSION = 0;
 

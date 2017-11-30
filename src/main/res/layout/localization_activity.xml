@@ -17,24 +17,28 @@
             android:layout_alignParentEnd="true"
             >
 
-            <Button
+            <ToggleButton
                 android:id="@+id/btnSend"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
-                android:text=" walk " />
+                android:text="MANUAL"
+                android:textOn="MANUAL ON"
+                android:textOff="MANUAL OFF"
+                />
 
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
-                android:text=" stop " />
+                android:text="STOP"
+                />
 
             <Button
                 android:id="@+id/debug_button"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
                 android:onClick="onClick"
-                android:text="Debug" />
+                android:text="DEBUG" />
 
         </LinearLayout>
 
@@ -78,7 +82,7 @@
             android:layout_below="@+id/adf_uuid_textview"
             android:layout_marginBottom="5px"
             android:layout_marginTop="5px"
-            android:text="best path"
+            android:text="destination"
             android:textSize="23sp" />
 
         <TextView
