@@ -7,7 +7,6 @@ import com.segway.robot.TrackingSample_Phone.model.Path;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPath;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,12 +54,13 @@ public class PathFinding {
 
     public List<POI> getShortestPathTo(POI target) {
         POI t = findPOI(target);
-        List<POI> path = new ArrayList<>();
+        List<POI> path = new LinkedList<>();
         for (POI vertex = t; vertex != null; vertex = vertex.getPrevious()) {
             path.add(vertex);
         }
         Collections.reverse(path);
         Log.i("SHORTEST PATH: ", path.toString());
+        path.remove(0);
         return path;
     }
 

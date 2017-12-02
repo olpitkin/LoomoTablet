@@ -28,6 +28,7 @@ import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
+import com.segway.robot.TrackingSample_Phone.util.PathFinding;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
 import com.segway.robot.mobile.sdk.connectivity.StringMessage;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
@@ -39,6 +40,7 @@ import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by Alex Pitkin on 28.09.2017.
@@ -94,7 +96,8 @@ public class LocalizationActivity extends Activity implements
 
     //NAVIGATION
     private POI goal;
-    private boolean moving = false;
+    private boolean isMoving = false;
+    private boolean threadRunning = false;
     private int control;
 
     private ServiceBinder.BindStateListener mBindStateListener = new ServiceBinder.BindStateListener() {
@@ -157,23 +160,40 @@ public class LocalizationActivity extends Activity implements
 
             if (message instanceof StringMessage) {
                 //message received is StringMessage
-                String mes = message.getContent().toString();
-                switch (mes)
-                {
-                    case "debug":
-                        runDebug();
-                        break;
-                    case "Weber":
-                        //TODO POI find tag
-                        break;
-                    case "room 35":
-                        //TODO POI find tag
-                        break;
-                    case "toilet":
-                        //TODO POI find tag
-                        break;
+                final String mes = message.getContent().toString();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mUuidTextView.setText(mes);
+                    }
+                });
+                if (!isMoving) {
+                    switch (mes)
+                    {
+                        case "debug":
+                            runDebug();
+                            break;
+                        case "David":
+                        case "room":
+                        case "toilet":
+                        case "secretary":
+                        case "START":
+                            //TODO alternative destinations
+                            //mPOIList = (LinkedList) repositoryPOI.getPOIonDescription(mes);
+                            POI poiTarget = repositoryPOI.getPOIonDescription(mes).get(0);
+                            PathFinding pathFinding = new PathFinding();
+                            POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+                            POI startPoi = pathFinding.getNearestPOI(myLocation);
+                            pathFinding.computePaths(startPoi);
+                            mPOIList = (LinkedList) pathFinding.getShortestPathTo(poiTarget);
+                            isMoving = true;
+                            break;
+                    }
+                    if (!threadRunning) {
+                        startMoving();
+                        controlRobot();
+                    }
                 }
-                moving = true;
             }
         }
 
@@ -193,10 +213,13 @@ public class LocalizationActivity extends Activity implements
        // mPOIList.add(new POI("","", 0,0));
        // mPOIList.add(new POI("","", 0,1));
        // mPOIList.add(new POI("","", 1,1));
-
-         mPOIList = (LinkedList) repositoryPOI.getAllPOI();
-
-        moving = true;
+        isMoving = true;
+        POI poiTarget = repositoryPOI.getPOIonDescription("secretary").get(0);
+        PathFinding pathFinding = new PathFinding();
+        POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+        POI startPoi = pathFinding.getNearestPOI(myLocation);
+        pathFinding.computePaths(startPoi);
+        mPOIList = (LinkedList) pathFinding.getShortestPathTo(poiTarget);
         startMoving();
         controlRobot();
     }
@@ -207,6 +230,7 @@ public class LocalizationActivity extends Activity implements
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
+        threadRunning = false;
     }
 
     @Override
@@ -253,6 +277,8 @@ public class LocalizationActivity extends Activity implements
                 });
             }
         });
+
+        threadRunning = false;
     }
 
     @Override
@@ -394,7 +420,8 @@ public class LocalizationActivity extends Activity implements
             if (fullUuidList.size() > 0) {
                 config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION,
                         //fullUuidList.get(fullUuidList.size() - 1));
-                        fullUuidList.get(1));
+                        //fullUuidList.get(1));
+                        fullUuidList.get(0));
             }
         }
         // TODO IF DEPTH
@@ -408,7 +435,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mEditText.setText("192.168.137.245");
+        mEditText.setText("192.168.137.113");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -532,15 +559,15 @@ public class LocalizationActivity extends Activity implements
                     //TODO RETURN ?
                     return;
                 }
-                Log.i("Moving", moving + "123");
-                while (moving) {
+                while (isMoving) {
                     printPOI(goal.toString());
                     if (poses[1] != null) {
                         POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
                         if (myLocation.isNear(goal)) {
-                            if (mPOIList.isEmpty()) {
-                                printPOI("");
-                                moving = false;
+                            if (mPOIList != null &&  mPOIList.isEmpty()) {
+                                printPOI("DONE");
+                                sendString("GOAL", false);
+                                isMoving = false;
                                 break;
                             }
                             // TODO CHECK
@@ -557,7 +584,6 @@ public class LocalizationActivity extends Activity implements
             }
         };
         if (mPOIList != null) {
-            Log.i("GOAL" ,"NEW DESTINATION");
             goal = mPOIList.poll();
         }
         Thread thread = new Thread(runnable);
@@ -568,7 +594,7 @@ public class LocalizationActivity extends Activity implements
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                while (moving) {
+                while (isMoving) {
                     if (poses[1] != null && goal != null) {
                         float[] q = poses[1].getRotationAsFloats();
                         float[] myLoc = poses[1].getTranslationAsFloats();
@@ -587,7 +613,7 @@ public class LocalizationActivity extends Activity implements
                             angDif = -(360 + angDifDirty);
                         }
 
-                        if (angDif < 3 && angDif > -3) {
+                        if (angDif < 5 && angDif > -5) {
 
                             final String log = " orientation: " + roll + " \n" +
                                     " angleD:" + Math.round(angleDirty) + " \n" +
@@ -600,6 +626,7 @@ public class LocalizationActivity extends Activity implements
                                 sendString("3", true);
                             }
                         }
+                        /*
                             else if (angDif < 7 && angDif > -7) {
                                 // GO AHEAD WITH ANG VELOCITY
                                 if (angDif > 0) {
@@ -626,6 +653,7 @@ public class LocalizationActivity extends Activity implements
                                     }
                                 }
                             }
+                            */
                                 else {
                                     if (angDif > 0) {
                                         final String log = " orientation: " + roll + " \n" +
@@ -781,17 +809,21 @@ public class LocalizationActivity extends Activity implements
         if (control) {
             if (this.control != Integer.parseInt(string)) {
                 this.control = Integer.parseInt(string);
+                if(mMessageConnection != null) {
+                    try {
+                        mMessageConnection.sendMessage(new StringMessage(string));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } else {
+            if(mMessageConnection != null) {
                 try {
                     mMessageConnection.sendMessage(new StringMessage(string));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
-        } else {
-            try {
-                mMessageConnection.sendMessage(new StringMessage(string));
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }
