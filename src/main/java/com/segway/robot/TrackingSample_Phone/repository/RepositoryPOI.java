@@ -16,7 +16,7 @@ import java.util.List;
 
 public class RepositoryPOI {
 
-    public static final String TABLE_POI = "path_poi";
+    public static final String TABLE_POI = "poi_table";
     public static final String KEY_ID = "id";
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_TYPE = "type";
@@ -27,7 +27,7 @@ public class RepositoryPOI {
     private static final String[] COLUMNS_POI = {KEY_ID, KEY_DESCRIPTION, KEY_TYPE, KEY_X, KEY_Y, KEY_AREA_ID};
 
     public static String createTable() {
-        String CREATE_POI_TABLE = "CREATE TABLE " + TABLE_POI + " (" +
+        String CREATE_POI_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_POI + " (" +
                 KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 KEY_DESCRIPTION + " TEXT, "+
                 KEY_TYPE + " TEXT, "+
@@ -61,17 +61,16 @@ public class RepositoryPOI {
 
         if (cursor != null)
             cursor.moveToFirst();
+            POI poi = new POI();
+            poi.setId(cursor.getInt(0));
+            poi.setDescription(cursor.getString(1));
+            poi.setType(cursor.getString(2));
+            poi.setX(cursor.getDouble(3));
+            poi.setY(cursor.getDouble(4));
+            poi.setAreaId(cursor.getInt(5));
+            DatabaseManager.getInstance().closeDatabase();
 
-        POI poi = new POI();
-        poi.setId(Integer.parseInt(cursor.getString(0)));
-        poi.setDescription(cursor.getString(1));
-        poi.setType(cursor.getString(2));
-        poi.setX(cursor.getDouble(3));
-        poi.setY(cursor.getDouble(4));
-        poi.setAreaId(cursor.getInt(5));
-        DatabaseManager.getInstance().closeDatabase();
-
-        return poi;
+            return poi;
     }
 
     public List<POI> getAllPOI() {

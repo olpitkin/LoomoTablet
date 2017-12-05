@@ -61,10 +61,21 @@
         android:id="@+id/PathListView"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
-        android:text="Mange Path"
+        android:text="Manage Path"
         android:textSize="15sp"
         android:onClick="pathListViewClicked"
         android:layout_above="@+id/PoiListView"
         android:layout_alignParentEnd="true" />
+
+    <Button
+        android:id="@+id/InfoListView"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="Manage Info"
+        android:textSize="15sp"
+        android:onClick="infoListViewClicked"
+        android:layout_above="@+id/PathListView"
+        android:layout_alignParentEnd="true" />
+
 
 </RelativeLayout>

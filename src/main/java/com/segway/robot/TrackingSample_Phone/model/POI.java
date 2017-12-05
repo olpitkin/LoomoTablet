@@ -15,11 +15,9 @@ public class POI implements Comparable<POI> {
     private Integer id;
     private String description;
     private String type;
-    private  double x;
-    private  double y;
+    private double x;
+    private double y;
     private int areaId;
-
-    // Dijkstra fields
     private double minDistance = Double.POSITIVE_INFINITY;
     private List<Path> adjacencies  = new ArrayList<>();
     private POI previous;
@@ -117,23 +115,21 @@ public class POI implements Comparable<POI> {
     }
 
     public boolean isNear (POI poi) {
-        if (this.x >= poi.getX() - 0.25 && this.x <= poi.getX() + 0.25) {
-            if (this.y >= poi.getY() - 0.25 && this.y <= poi.getY() + 0.25)
-            {
+        if (this.x >= poi.getX() - 0.25 &&
+                this.x <= poi.getX() + 0.25 &&
+                this.y >= poi.getY() - 0.25 &&
+                this.y <= poi.getY() + 0.25) {
                 return  true;
-            }
-            return false;
         }
         return false;
     }
 
     public boolean isVeryNear (POI poi) {
-        if (this.x >= poi.getX() - 0.1 && this.x <= poi.getX() + 0.1) {
-            if (this.y >= poi.getY() - 0.1 && this.y <= poi.getY() + 0.1)
-            {
-                return  true;
-            }
-            return false;
+        if (this.x >= poi.getX() - 0.1 &&
+                this.x <= poi.getX() + 0.1 &&
+                this.y >= poi.getY() - 0.1 &&
+                this.y <= poi.getY() + 0.1) {
+            return  true;
         }
         return false;
     }

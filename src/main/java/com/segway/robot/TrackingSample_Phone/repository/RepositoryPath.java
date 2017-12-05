@@ -26,7 +26,7 @@ public class RepositoryPath {
     RepositoryPOI repositoryPOI = new RepositoryPOI();
 
     public static String createTable() {
-        String CREATE_PATH_TABLE = "CREATE TABLE " + TABLE_PATH + "(" +
+        String CREATE_PATH_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_PATH + "(" +
                 KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 KEY_START + " INTEGER, "+
                 KEY_END + " INTEGER )";
@@ -98,11 +98,9 @@ public class RepositoryPath {
 
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         Cursor cursor = db.rawQuery(query, null);
-
-        Path path = null;
         if (cursor.moveToFirst()) {
             do {
-                path = new Path();
+                Path path = new Path();
                 path.setId(Integer.parseInt(cursor.getString(0)));
                 POI start = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(1)));
                 POI end = repositoryPOI.getPOI(Integer.parseInt(cursor.getString(2)));

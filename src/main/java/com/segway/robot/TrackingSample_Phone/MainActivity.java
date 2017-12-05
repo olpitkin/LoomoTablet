@@ -8,6 +8,9 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.google.atap.tangoservice.Tango;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryInfo;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryPath;
 
 public class MainActivity extends Activity {
 
@@ -50,6 +53,9 @@ public class MainActivity extends Activity {
     public void poiListViewClicked(View v) {
         startPoiListView();
     }
+    public void infoListViewClicked(View v) {
+        startInfoListView();
+    }
     public void pathListViewClicked(View v) {
         startPathListView();
     }
@@ -70,6 +76,10 @@ public class MainActivity extends Activity {
     private void startPathListView() {
         Intent startPathListViewIntent = new Intent(this, PathListActivity.class);
         startActivity(startPathListViewIntent);
+    }
+    private void startInfoListView() {
+        Intent startInfoListViewIntent = new Intent(this, InfoListActivity.class);
+        startActivity(startInfoListViewIntent);
     }
 
     @Override

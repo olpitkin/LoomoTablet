@@ -27,6 +27,7 @@ import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 import com.segway.robot.TrackingSample_Phone.model.POI;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryInfo;
 import com.segway.robot.TrackingSample_Phone.repository.RepositoryPOI;
 import com.segway.robot.TrackingSample_Phone.util.PathFinding;
 import com.segway.robot.mobile.sdk.connectivity.MobileMessageRouter;
@@ -40,7 +41,6 @@ import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by Alex Pitkin on 28.09.2017.
@@ -59,6 +59,7 @@ public class LocalizationActivity extends Activity implements
     private MessageConnection mMessageConnection = null;
     private LinkedList<POI> mPOIList;
     private RepositoryPOI repositoryPOI = new RepositoryPOI();
+    private RepositoryInfo repositoryInfo = new RepositoryInfo();
 
     //TANGO
     private Tango mTango;
@@ -95,8 +96,10 @@ public class LocalizationActivity extends Activity implements
             "com.segway.robot.TrackingSample_Phone.loadadf";
 
     //NAVIGATION
+    private POI start;
     private POI goal;
     private boolean isMoving = false;
+    private boolean isTurning = false;
     private boolean threadRunning = false;
     private int control;
 
@@ -178,7 +181,6 @@ public class LocalizationActivity extends Activity implements
                         case "toilet":
                         case "secretary":
                         case "START":
-                            //TODO alternative destinations
                             //mPOIList = (LinkedList) repositoryPOI.getPOIonDescription(mes);
                             POI poiTarget = repositoryPOI.getPOIonDescription(mes).get(0);
                             PathFinding pathFinding = new PathFinding();
@@ -555,10 +557,8 @@ public class LocalizationActivity extends Activity implements
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                if (mPOIList == null) {
-                    //TODO RETURN ?
+                if (mPOIList == null)
                     return;
-                }
                 while (isMoving) {
                     printPOI(goal.toString());
                     if (poses[1] != null) {
@@ -570,8 +570,14 @@ public class LocalizationActivity extends Activity implements
                                 isMoving = false;
                                 break;
                             }
-                            // TODO CHECK
+                            start = goal;
                             goal = mPOIList.poll();
+                            isTurning = true;
+                            if (!mPOIList.isEmpty()) {
+                                POI next = mPOIList.get(0);
+                                String info = repositoryInfo.getInfoOnPOI(start,goal,next);
+                                sendString(info, false);
+                            }
                             printPOI(goal.toString());
                         }
                     }
@@ -600,34 +606,57 @@ public class LocalizationActivity extends Activity implements
                         float[] myLoc = poses[1].getTranslationAsFloats();
                         //double yaw = Math.atan2(2.0*(q[1]*q[2] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
                         //double pitch = Math.asin(-2.0*(q[0]*q[2] - q[3]*q[1]));
-                        double roll = Math.round(Math.toDegrees(Math.atan2(2.0*(q[0]*q[1] + q[3]*q[2]), q[3]*q[3] + q[0]*q[0] - q[1]*q[1] - q[2]*q[2])));
+                        double roll = Math.round(Math.toDegrees(Math.atan2(2.0 * (q[0] * q[1] + q[3] * q[2]), q[3] * q[3] + q[0] * q[0] - q[1] * q[1] - q[2] * q[2])));
                         double angleDirty = Math.toDegrees(Math.atan2(goal.getY() - myLoc[1], goal.getX() - myLoc[0]));
-                        double angle =  Math.round(angleDirty - 90);
+                        double angle = Math.round(angleDirty - 90);
                         double angDifDirty = angle - roll;
                         double angDif = angDifDirty;
 
                         if (angDifDirty > 180) {
                             angDif = 360 - angDifDirty;
-                        }
-                        else if (angDifDirty < -180){
+                        } else if (angDifDirty < -180) {
                             angDif = -(360 + angDifDirty);
                         }
-
-                        if (angDif < 5 && angDif > -5) {
-
-                            final String log = " orientation: " + roll + " \n" +
-                                    " angleD:" + Math.round(angleDirty) + " \n" +
-                                    " angle: " + angle + " \n" +
-                                    " dif: " + Math.round(angDifDirty) + " \n" +
-                                    " dif2:" + Math.round(angDif) + " \n" + "c:3";
-                            printLog(log);
-                            if (!isManual){
-                                // GO AHEAD - NO ANG VELOCITY
-                                sendString("3", true);
+                        if (isTurning) {
+                            if (angDif < 3 && angDif > -3) {
+                                isTurning = false;
                             }
-                        }
-                        /*
-                            else if (angDif < 7 && angDif > -7) {
+                            else if (angDif > 0) {
+                                final String log = " orientation: " + roll + " \n" +
+                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                        " angle: " + angle + " \n" +
+                                        " dif: " + Math.round(angDifDirty) + " \n" +
+                                        " dif2:" + Math.round(angDif) + " \n" + "c:1";
+                                printLog(log);
+                                if (!isManual) {
+                                    // LEFT TURN
+                                    sendString("1", true);
+                                }
+                            } else if (angDif < 0) {
+                                final String log = " orientation: " + roll + " \n" +
+                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                        " angle: " + angle + " \n" +
+                                        " dif: " + Math.round(angDifDirty) + " \n" +
+                                        " dif2:" + Math.round(angDif) + " \n" + "c:5";
+                                printLog(log);
+                                if (!isManual) {
+                                    // RIGHT TURN
+                                    sendString("5", true);
+                                }
+                            }
+                        } else {
+                            if (angDif < 5 && angDif > -5) {
+                                final String log = " orientation: " + roll + " \n" +
+                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                        " angle: " + angle + " \n" +
+                                        " dif: " + Math.round(angDifDirty) + " \n" +
+                                        " dif2:" + Math.round(angDif) + " \n" + "c:3";
+                                printLog(log);
+                                if (!isManual) {
+                                    // GO AHEAD - NO ANG VELOCITY
+                                    sendString("3", true);
+                                }
+                            }  else if (angDif < 7 && angDif > -7) {
                                 // GO AHEAD WITH ANG VELOCITY
                                 if (angDif > 0) {
                                     final String log = " orientation: " + roll + " \n" +
@@ -653,33 +682,8 @@ public class LocalizationActivity extends Activity implements
                                     }
                                 }
                             }
-                            */
-                                else {
-                                    if (angDif > 0) {
-                                        final String log = " orientation: " + roll + " \n" +
-                                                " angleD:" + Math.round(angleDirty) + " \n" +
-                                                " angle: " + angle + " \n" +
-                                                " dif: " + Math.round(angDifDirty) + " \n" +
-                                                " dif2:" + Math.round(angDif) + " \n" + "c:1";
-                                        printLog(log);
-                                        if (!isManual){
-                                            // LEFT TURN
-                                            sendString("1", true);
-                                        }
-                                    } else {
-                                        final String log = " orientation: " + roll + " \n" +
-                                                " angleD:" + Math.round(angleDirty) + " \n" +
-                                                " angle: " + angle + " \n" +
-                                                " dif: " + Math.round(angDifDirty) + " \n" +
-                                                " dif2:" + Math.round(angDif) + " \n" + "c:5";
-                                        printLog(log);
-                                        if (!isManual){
-                                            // RIGHT TURN
-                                            sendString("5", true);
-                                        }
-                                    }
-                                }
                         }
+                    }
                     try {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
