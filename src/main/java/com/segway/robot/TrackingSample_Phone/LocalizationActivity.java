@@ -98,8 +98,8 @@ public class LocalizationActivity extends Activity implements
     private POI goal;
     private boolean isMoving = false;
     private boolean isTurning = false;
+    private boolean turningLock = false;
     private boolean isWaiting = false;
-    private boolean threadRunning = false;
     private int control;
 
     Thread movingThread;
@@ -202,6 +202,7 @@ public class LocalizationActivity extends Activity implements
                             isWaiting = false;
                             isMoving = true;
                             isTurning = true;
+                            turningLock = false;
                             break;
                     }
                         startMoving();
@@ -221,12 +222,9 @@ public class LocalizationActivity extends Activity implements
     };
 
     private void runDebug() {
-       // mPOIList = new LinkedList<>();
-       // mPOIList.add(new POI("","", 0,0));
-       // mPOIList.add(new POI("","", 0,1));
-       // mPOIList.add(new POI("","", 1,1));
         isMoving = true;
         isTurning = true;
+        turningLock = false;
         isWaiting = false;
         POI poiTarget = repositoryPOI.getPOIonDescription("start").get(0);
         PathFinding pathFinding = new PathFinding();
@@ -244,13 +242,12 @@ public class LocalizationActivity extends Activity implements
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
-        threadRunning = false;
         isWaiting = false;
         isMoving = false;
         isTurning = false;
+        turningLock = false;
 
         if (movingThread != null) {
-            // TODO REWORK RUN STOP THREAD
             movingThread.interrupt();
         }
     }
@@ -300,10 +297,10 @@ public class LocalizationActivity extends Activity implements
             }
         });
 
-        threadRunning = false;
         isWaiting = false;
         isMoving = false;
         isTurning = false;
+        turningLock = false;
     }
 
     @Override
@@ -555,8 +552,6 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void onClick(View v) {
                 isManual = !isManual;
-                sendString("GO",false);
-                sendString("0",true);
             }
         });
 
@@ -595,6 +590,7 @@ public class LocalizationActivity extends Activity implements
                                 sendString("GOAL", false);
                                 isMoving = false;
                                 isTurning = false;
+                                turningLock = false;
                                 start = null;
                                 goal = null;
                                 break;
@@ -631,10 +627,10 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void run() {
                 while (isMoving) {
-                    if (isWaiting) {
-                        sendString("0",true);
-                        continue;
-                    }
+                        if (isWaiting) {
+                            sendString("0",true);
+                            continue;
+                        }
                         float[] q = poses[1].getRotationAsFloats();
                         float[] myLoc = poses[1].getTranslationAsFloats();
                         //double yaw = Math.atan2(2.0*(q[1]*q[2] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
@@ -644,7 +640,6 @@ public class LocalizationActivity extends Activity implements
                         double angle = Math.round(angleDirty - 90);
                         double angDifDirty = angle - roll;
                         double angDif = angDifDirty;
-
                         if (angDifDirty > 180) {
                             angDif = 360 - angDifDirty;
                         } else if (angDifDirty < -180) {
@@ -661,7 +656,7 @@ public class LocalizationActivity extends Activity implements
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "c:1";
                                 printLog(log);
-                                if (!isManual) {
+                                if (!isManual && !turningLock) {
                                     // LEFT TURN
                                     sendString("1", true);
                                 }
@@ -672,7 +667,7 @@ public class LocalizationActivity extends Activity implements
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "c:5";
                                 printLog(log);
-                                if (!isManual) {
+                                if (!isManual && !turningLock) {
                                     // RIGHT TURN
                                     sendString("5", true);
                                 }
@@ -690,7 +685,7 @@ public class LocalizationActivity extends Activity implements
                                     sendString("3", true);
                                 }
                             }
-                            else if (angDif < 25 && angDif > -25) {
+                            else if (angDif < 35 && angDif > -35) {
                                 // GO AHEAD WITH ANG VELOCITY
                                 if (angDif > 0) {
                                     final String log = " orientation: " + roll + " \n" +
@@ -725,6 +720,7 @@ public class LocalizationActivity extends Activity implements
                                 printLog(log);
 
                                 if (!isManual) {
+                                    //TODO TRY OUT
                                     // GO AHEAD - NO ANG VELOCITY
                                     //sendString("3", true);
                                 }
@@ -740,6 +736,7 @@ public class LocalizationActivity extends Activity implements
                                         start = goal;
                                         goal = mPOIList.poll();
                                         isTurning = true;
+                                        turningLock = false;
                                         if (!mPOIList.isEmpty()) {
                                             POI next = mPOIList.get(0);
                                             String info = repositoryInfo.getInfoOnPOI(start,goal,next);
@@ -749,6 +746,7 @@ public class LocalizationActivity extends Activity implements
                                     }
                                 } else {
                                     isTurning = true;
+                                    turningLock = false;
                                 }
                             }
                         }
