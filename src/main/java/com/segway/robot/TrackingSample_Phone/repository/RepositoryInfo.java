@@ -84,9 +84,11 @@ public class RepositoryInfo {
                 db.query(TABLE_INFO, COLUMNS_INFO, " start = ? AND goal = ? AND next = ? ",
                          new String[] { String.valueOf(start.getId()), String.valueOf(goal.getId()), String.valueOf(next.getId())},
                         null, null, null, null);
-
-        String info = cursor.getString(4);
-        DatabaseManager.getInstance().closeDatabase();
+        String info ="";
+        if (cursor.moveToNext()) {
+            info = cursor.getString(4);
+            DatabaseManager.getInstance().closeDatabase();
+        }
         return info;
     }
 
