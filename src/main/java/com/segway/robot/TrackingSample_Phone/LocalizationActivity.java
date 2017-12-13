@@ -96,7 +96,6 @@ public class LocalizationActivity extends Activity implements
     //NAVIGATION
     private POI start;
     private POI goal;
-    private boolean isMoving = false;
     private boolean isTurning = false;
     private boolean turningLock = false;
     private boolean isWaiting = false;
@@ -162,7 +161,6 @@ public class LocalizationActivity extends Activity implements
     private MessageConnection.MessageListener mMessageListener = new MessageConnection.MessageListener() {
         @Override
         public void onMessageReceived(final Message message) {
-
             if (message instanceof StringMessage) {
                 //message received is StringMessage
                 final String mes = message.getContent().toString();
@@ -172,8 +170,7 @@ public class LocalizationActivity extends Activity implements
                         mUuidTextView.setText(mes);
                     }
                 });
-                    switch (mes)
-                    {
+                    switch (mes) {
                         case "STOP" :
                             isWaiting = true;
                             break;
@@ -183,16 +180,11 @@ public class LocalizationActivity extends Activity implements
                         case "debug":
                             runDebug();
                             break;
-                        case "david":
-                        case "room":
-                        case "toilet":
-                        case "secretary":
-                        case "start":
-                        case "labor_wp":
-                        case "labor_door":
-                        case "labor_room":
+                        default:
                             //mPOIList = (LinkedList) repositoryPOI.getPOIonDescription(mes);
                             POI poiTarget = repositoryPOI.getPOIonDescription(mes).get(0);
+                            if (poiTarget == null)
+                                break;
                             Log.e("target", poiTarget.toString());
                             PathFinding pathFinding = new PathFinding();
                             POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
@@ -200,7 +192,6 @@ public class LocalizationActivity extends Activity implements
                             pathFinding.computePaths(startPoi);
                             mPOIList = pathFinding.getShortestPathTo(poiTarget);
                             isWaiting = false;
-                            isMoving = true;
                             isTurning = true;
                             turningLock = false;
                             break;
@@ -222,11 +213,10 @@ public class LocalizationActivity extends Activity implements
     };
 
     private void runDebug() {
-        isMoving = true;
         isTurning = true;
         turningLock = false;
         isWaiting = false;
-        POI poiTarget = repositoryPOI.getPOIonDescription("start").get(0);
+        POI poiTarget = repositoryPOI.getPOIonDescription("david").get(0);
         PathFinding pathFinding = new PathFinding();
         POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
         POI startPoi = pathFinding.getNearestPOI(myLocation);
@@ -242,14 +232,6 @@ public class LocalizationActivity extends Activity implements
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
-        isWaiting = false;
-        isMoving = false;
-        isTurning = false;
-        turningLock = false;
-
-        if (movingThread != null) {
-            movingThread.interrupt();
-        }
     }
 
     @Override
@@ -296,11 +278,6 @@ public class LocalizationActivity extends Activity implements
                 });
             }
         });
-
-        isWaiting = false;
-        isMoving = false;
-        isTurning = false;
-        turningLock = false;
     }
 
     @Override
@@ -457,7 +434,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mEditText.setText("192.168.137.227");
+        mEditText.setText("192.168.0.103");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -552,6 +529,7 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void onClick(View v) {
                 isManual = !isManual;
+                sendString("MANUAL",false);
             }
         });
 
@@ -575,9 +553,7 @@ public class LocalizationActivity extends Activity implements
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                if (mPOIList == null)
-                    return;
-                while (isMoving) {
+                while (true) {
                     if (mPOIList != null && !mPOIList.isEmpty() && goal == null) {
                         goal = mPOIList.poll();
                     }
@@ -588,7 +564,7 @@ public class LocalizationActivity extends Activity implements
                             if (mPOIList != null && mPOIList.isEmpty()) {
                                 printPOI("DONE");
                                 sendString("GOAL", false);
-                                isMoving = false;
+                                sendString("0",true);
                                 isTurning = false;
                                 turningLock = false;
                                 start = null;
@@ -626,11 +602,13 @@ public class LocalizationActivity extends Activity implements
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                while (isMoving) {
+                while (true) {
                         if (isWaiting) {
                             sendString("0",true);
                             continue;
                         }
+                        if (goal == null || poses[1] == null)
+                            continue;
                         float[] q = poses[1].getRotationAsFloats();
                         float[] myLoc = poses[1].getTranslationAsFloats();
                         //double yaw = Math.atan2(2.0*(q[1]*q[2] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
@@ -655,9 +633,11 @@ public class LocalizationActivity extends Activity implements
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "c:1";
-                                printLog(log);
+                                    printLog(log);
                                 if (!isManual && !turningLock) {
                                     // LEFT TURN
+                                    turningLock = true;
+                                    printControlSig("1");
                                     sendString("1", true);
                                 }
                             } else if (angDif < 0) {
@@ -669,11 +649,13 @@ public class LocalizationActivity extends Activity implements
                                 printLog(log);
                                 if (!isManual && !turningLock) {
                                     // RIGHT TURN
+                                    turningLock = true;
+                                    printControlSig("5");
                                     sendString("5", true);
                                 }
                             }
                         } else {
-                            if (angDif < 15 && angDif > -15) {
+                            if (angDif < 5 && angDif > -5) {
                                 final String log = " orientation: " + roll + " \n" +
                                         " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
@@ -682,10 +664,11 @@ public class LocalizationActivity extends Activity implements
                                 printLog(log);
                                 if (!isManual) {
                                     // GO AHEAD - NO ANG VELOCITY
+                                    printControlSig("3");
                                     sendString("3", true);
                                 }
                             }
-                            else if (angDif < 35 && angDif > -35) {
+                            else if (angDif < 10 && angDif > -10) {
                                 // GO AHEAD WITH ANG VELOCITY
                                 if (angDif > 0) {
                                     final String log = " orientation: " + roll + " \n" +
@@ -696,6 +679,7 @@ public class LocalizationActivity extends Activity implements
                                     printLog(log);
                                     if (!isManual) {
                                         // POSITIVE VEL
+                                        printControlSig("4");
                                         sendString("4", true);
                                     }
                                 } else if (angDif < 0) {
@@ -707,6 +691,7 @@ public class LocalizationActivity extends Activity implements
                                     printLog(log);
                                     if (!isManual) {
                                         // NEGATIVE VEL
+                                        printControlSig("2");
                                         sendString("2", true);
                                     }
                                 }
@@ -718,19 +703,13 @@ public class LocalizationActivity extends Activity implements
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) +  " \n";
                                 printLog(log);
-
-                                if (!isManual) {
-                                    //TODO TRY OUT
-                                    // GO AHEAD - NO ANG VELOCITY
-                                    //sendString("3", true);
-                                }
-
                                 POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
                                 if (myLocation.isNear(goal)){
                                     if (mPOIList != null && mPOIList.isEmpty()) {
                                         printPOI("DEBUG DONE");
                                         sendString("GOAL", false);
-                                        isMoving = false;
+                                        sendString("0",true);
+                                        printControlSig("0");
                                         isTurning = false;
                                     } else {
                                         start = goal;
@@ -756,8 +735,6 @@ public class LocalizationActivity extends Activity implements
                         e.printStackTrace();
                     }
                 }
-                // STOP
-                sendString("0", true);
             }
         };
         if (controlThread == null) {
@@ -907,6 +884,16 @@ public class LocalizationActivity extends Activity implements
                           @Override
                           public void run() {
                               path.setText(p);
+                          }
+                      }
+        );
+    }
+
+    private void printControlSig(final String p){
+        runOnUiThread(new Runnable() {
+                          @Override
+                          public void run() {
+                              mUuidTextView.setText(p);
                           }
                       }
         );

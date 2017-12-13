@@ -60,7 +60,7 @@ public class PathFinding {
         }
         Collections.reverse(path);
         Log.i("SHORTEST PATH: ", path.toString());
-        if (path.size() >= 2 && !path.get(1).getType().equals("Door")) {
+        if (path.size() >= 2 && !path.get(1).getType().equals("Door") && !path.get(0).getType().equals("Door")) {
             path.remove(0);
         }
         return path;
