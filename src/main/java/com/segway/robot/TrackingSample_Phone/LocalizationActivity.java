@@ -111,6 +111,9 @@ public class LocalizationActivity extends Activity implements
     private boolean isWaiting = false;
     private int control;
 
+    private boolean isTactile = false;
+    private static AsyncRequest tactileTask = new AsyncRequest();
+
     Thread movingThread;
     Thread controlThread;
 
@@ -245,10 +248,10 @@ public class LocalizationActivity extends Activity implements
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
     }
 
-    class AsyncRequest extends AsyncTask<String, Integer, String> {
+    static class AsyncRequest extends AsyncTask<String, Void, Void> {
 
         @Override
-        protected String doInBackground(String... arg) {
+        protected Void doInBackground(String... arg) {
             try {
                 String IP = "127.0.0.1";
                 String answer = "not connected";
@@ -279,12 +282,7 @@ public class LocalizationActivity extends Activity implements
             } catch (IOException e1) {
                 System.out.println("IOException");
             }
-            return "";
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
+            return null;
         }
     }
 
@@ -624,7 +622,7 @@ public class LocalizationActivity extends Activity implements
                                 isCorrecting = false;
                                 start = null;
                                 goal = null;
-                                break;
+                                continue;
                             }
                             start = goal;
                             goal = mPOIList.poll();
@@ -633,6 +631,9 @@ public class LocalizationActivity extends Activity implements
                                 POI next = mPOIList.get(0);
                                 String info = repositoryInfo.getInfoOnPOI(start,goal,next);
                                 sendString(info, false);
+                                if (isTactile) {
+                                    tactileTask.execute(info, null, null);
+                                }
                             }
                             printPOI(goal.toString());
                         }
