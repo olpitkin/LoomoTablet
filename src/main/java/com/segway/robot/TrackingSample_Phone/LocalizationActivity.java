@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.FragmentManager;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -37,6 +38,13 @@ import com.segway.robot.sdk.baseconnectivity.Message;
 import com.segway.robot.sdk.baseconnectivity.MessageConnection;
 import com.segway.robot.sdk.baseconnectivity.MessageRouter;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -98,6 +106,8 @@ public class LocalizationActivity extends Activity implements
     private POI goal;
     private boolean isTurning = false;
     private boolean turningLock = false;
+
+    private boolean isCorrecting = false;
     private boolean isWaiting = false;
     private int control;
 
@@ -224,6 +234,7 @@ public class LocalizationActivity extends Activity implements
         mPOIList = pathFinding.getShortestPathTo(poiTarget);
         startMoving();
         controlRobot();
+
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -232,6 +243,49 @@ public class LocalizationActivity extends Activity implements
         Intent intent = getIntent();
         mIsLearningMode = intent.getBooleanExtra(MainActivity.USE_AREA_LEARNING, false);
         mIsConstantSpaceRelocalize = intent.getBooleanExtra(MainActivity.LOAD_ADF, false);
+    }
+
+    class AsyncRequest extends AsyncTask<String, Integer, String> {
+
+        @Override
+        protected String doInBackground(String... arg) {
+            try {
+                String IP = "127.0.0.1";
+                String answer = "not connected";
+                int PORT = 50000;
+                String command = "!PlayPattern,move_left";
+                InetAddress ipAddress = InetAddress.getByName(IP);
+                DatagramSocket clientSocket = new DatagramSocket();
+                clientSocket.setSoTimeout(500);
+
+                byte[] receiveData = new byte[2048];
+                byte[] sendData = command.trim().getBytes();
+
+                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ipAddress, PORT);
+                clientSocket.send(sendPacket);
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                try {
+                    clientSocket.receive(receivePacket);
+                    answer = new String(receivePacket.getData());
+                    answer = answer.substring(0,receivePacket.getLength());
+                    Log.i("123", answer);
+                } catch (SocketTimeoutException e) {
+                    System.out.println("SocketTimeoutException");
+                }
+            } catch (SocketException e) {
+                System.out.println("SocketException");
+            } catch (UnknownHostException e) {
+                System.out.println("UnknownHostException");
+            } catch (IOException e1) {
+                System.out.println("IOException");
+            }
+            return "";
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+        }
     }
 
     @Override
@@ -434,7 +488,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mEditText.setText("192.168.0.103");
+        mEditText.setText("192.168.1.3");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -565,8 +619,9 @@ public class LocalizationActivity extends Activity implements
                                 printPOI("DONE");
                                 sendString("GOAL", false);
                                 sendString("0",true);
-                                isTurning = false;
+                                isTurning = true;
                                 turningLock = false;
+                                isCorrecting = false;
                                 start = null;
                                 goal = null;
                                 break;
@@ -626,18 +681,19 @@ public class LocalizationActivity extends Activity implements
                         if (isTurning) {
                             if (angDif < 5 && angDif > -5) {
                                 isTurning = false;
+                                turningLock = false;
                             }
                             else if (angDif > 0) {
                                 final String log = " orientation: " + roll + " \n" +
                                         " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
-                                        " dif2:" + Math.round(angDif) + " \n" + "c:1";
+                                        " dif2:" + Math.round(angDif) + " \n" + "TURNING";
                                     printLog(log);
                                 if (!isManual && !turningLock) {
                                     // LEFT TURN
                                     turningLock = true;
-                                    printControlSig("1");
+                                    printControlSig("1T");
                                     sendString("1", true);
                                 }
                             } else if (angDif < 0) {
@@ -645,89 +701,65 @@ public class LocalizationActivity extends Activity implements
                                         " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
-                                        " dif2:" + Math.round(angDif) + " \n" + "c:5";
+                                        " dif2:" + Math.round(angDif) + " \n" + "TURNING";
                                 printLog(log);
                                 if (!isManual && !turningLock) {
                                     // RIGHT TURN
                                     turningLock = true;
-                                    printControlSig("5");
+                                    printControlSig("5T");
                                     sendString("5", true);
                                 }
                             }
                         } else {
-                            if (angDif < 5 && angDif > -5) {
+                            if (angDif < 15 && angDif > -15 && !isCorrecting) {
                                 final String log = " orientation: " + roll + " \n" +
                                         " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
-                                        " dif2:" + Math.round(angDif) + " \n" + "c:3";
+                                        " dif2:" + Math.round(angDif) + " \n" + "MOVING";
                                 printLog(log);
                                 if (!isManual) {
                                     // GO AHEAD - NO ANG VELOCITY
-                                    printControlSig("3");
+                                    printControlSig("3M");
                                     sendString("3", true);
                                 }
                             }
-                            else if (angDif < 10 && angDif > -10) {
+                            else if (angDif < 70 && angDif > -70) {
+                                isCorrecting = true;
+                                if (angDif < 3 && angDif > -3) {
+                                    isCorrecting = false;
+                                }
                                 // GO AHEAD WITH ANG VELOCITY
                                 if (angDif > 0) {
                                     final String log = " orientation: " + roll + " \n" +
                                             " angleD:" + Math.round(angleDirty) + " \n" +
                                             " angle: " + angle + " \n" +
                                             " dif: " + Math.round(angDifDirty) + " \n" +
-                                            " dif2:" + Math.round(angDif) + " \n" + "c:4";
+                                            " dif2:" + Math.round(angDif) + " \n" + "MOVING";
                                     printLog(log);
                                     if (!isManual) {
                                         // POSITIVE VEL
-                                        printControlSig("4");
-                                        sendString("4", true);
+                                        printControlSig("2M");
+                                        sendString("2", true);
                                     }
                                 } else if (angDif < 0) {
                                     final String log = " orientation: " + roll + " \n" +
                                             " angleD:" + Math.round(angleDirty) + " \n" +
                                             " angle: " + angle + " \n" +
                                             " dif: " + Math.round(angDifDirty) + " \n" +
-                                            " dif2:" + Math.round(angDif) +  " \n" + "c:2";
+                                            " dif2:" + Math.round(angDif) +  " \n" + "MOVING";
                                     printLog(log);
                                     if (!isManual) {
                                         // NEGATIVE VEL
-                                        printControlSig("2");
-                                        sendString("2", true);
+                                        printControlSig("4M");
+                                        sendString("4", true);
                                     }
                                 }
                             }
                             else {
-                                final String log = " orientation: " + roll + " \n" +
-                                        " angleD:" + Math.round(angleDirty) + " \n" +
-                                        " angle: " + angle + " \n" +
-                                        " dif: " + Math.round(angDifDirty) + " \n" +
-                                        " dif2:" + Math.round(angDif) +  " \n";
-                                printLog(log);
-                                POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-                                if (myLocation.isNear(goal)){
-                                    if (mPOIList != null && mPOIList.isEmpty()) {
-                                        printPOI("DEBUG DONE");
-                                        sendString("GOAL", false);
-                                        sendString("0",true);
-                                        printControlSig("0");
-                                        isTurning = false;
-                                    } else {
-                                        start = goal;
-                                        goal = mPOIList.poll();
-                                        isTurning = true;
-                                        turningLock = false;
-                                        if (!mPOIList.isEmpty()) {
-                                            POI next = mPOIList.get(0);
-                                            String info = repositoryInfo.getInfoOnPOI(start,goal,next);
-                                            sendString(info, false);
-                                        }
-                                        printPOI("DEBUG" + goal.toString());
-                                    }
-                                } else {
                                     isTurning = true;
                                     turningLock = false;
                                 }
-                            }
                         }
                     try {
                         Thread.sleep(10);
@@ -850,7 +882,7 @@ public class LocalizationActivity extends Activity implements
         runOnUiThread(new Runnable() {
                           @Override
                           public void run() {
-                              logText.setText(log + " " + control);
+                              logText.setText(log);
                           }
                       }
         );
