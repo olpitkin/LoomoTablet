@@ -106,13 +106,10 @@ public class LocalizationActivity extends Activity implements
     private POI goal;
     private boolean isTurning = false;
     private boolean turningLock = false;
-
     private boolean isCorrecting = false;
-    private boolean isWaiting = false;
     private int control;
 
     private boolean isTactile = false;
-    private static AsyncRequest tactileTask = new AsyncRequest();
 
     Thread movingThread;
     Thread controlThread;
@@ -184,12 +181,6 @@ public class LocalizationActivity extends Activity implements
                     }
                 });
                     switch (mes) {
-                        case "STOP" :
-                            isWaiting = true;
-                            break;
-                        case "GO" :
-                            isWaiting = false;
-                            break;
                         case "debug":
                             runDebug();
                             break;
@@ -204,7 +195,6 @@ public class LocalizationActivity extends Activity implements
                             POI startPoi = pathFinding.getNearestPOI(myLocation);
                             pathFinding.computePaths(startPoi);
                             mPOIList = pathFinding.getShortestPathTo(poiTarget);
-                            isWaiting = false;
                             isTurning = true;
                             turningLock = false;
                             break;
@@ -226,17 +216,16 @@ public class LocalizationActivity extends Activity implements
     };
 
     private void runDebug() {
-        isTurning = true;
-        turningLock = false;
-        isWaiting = false;
-        POI poiTarget = repositoryPOI.getPOIonDescription("david").get(0);
-        PathFinding pathFinding = new PathFinding();
-        POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
-        POI startPoi = pathFinding.getNearestPOI(myLocation);
-        pathFinding.computePaths(startPoi);
-        mPOIList = pathFinding.getShortestPathTo(poiTarget);
-        startMoving();
-        controlRobot();
+            isTurning = true;
+            turningLock = false;
+            POI poiTarget = repositoryPOI.getPOIonDescription("work").get(0);
+            PathFinding pathFinding = new PathFinding();
+            POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
+            POI startPoi = pathFinding.getNearestPOI(myLocation);
+            pathFinding.computePaths(startPoi);
+            mPOIList = pathFinding.getShortestPathTo(poiTarget);
+            startMoving();
+            controlRobot();
 
     }
     @Override
@@ -271,7 +260,6 @@ public class LocalizationActivity extends Activity implements
                     clientSocket.receive(receivePacket);
                     answer = new String(receivePacket.getData());
                     answer = answer.substring(0,receivePacket.getLength());
-                    Log.i("123", answer);
                 } catch (SocketTimeoutException e) {
                     System.out.println("SocketTimeoutException");
                 }
@@ -486,7 +474,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mEditText.setText("192.168.1.3");
+        mEditText.setText("192.168.1.2");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -588,7 +576,12 @@ public class LocalizationActivity extends Activity implements
         mStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendString("STOP", false);
+                sendString("0", true);
+                isTurning = true;
+                turningLock = false;
+                isCorrecting = false;
+                start = null;
+                goal = null;
                 mPOIList = null;
             }
         });
@@ -609,19 +602,22 @@ public class LocalizationActivity extends Activity implements
                     if (mPOIList != null && !mPOIList.isEmpty() && goal == null) {
                         goal = mPOIList.poll();
                     }
+                    if ((mPOIList == null && goal == null)) {
+                        sendString("0",true);
+                    }
                     if (poses[1] != null && goal != null) {
-                        printPOI(goal.toString());
+                       // printPOI(goal.toString());
                         POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
                         if (myLocation.isVeryNear(goal)) {
                             if (mPOIList != null && mPOIList.isEmpty()) {
-                                printPOI("DONE");
+                                printPOI("");
                                 sendString("GOAL", false);
-                                sendString("0",true);
                                 isTurning = true;
                                 turningLock = false;
                                 isCorrecting = false;
                                 start = null;
                                 goal = null;
+                                mPOIList = null;
                                 continue;
                             }
                             start = goal;
@@ -630,12 +626,14 @@ public class LocalizationActivity extends Activity implements
                             if (!mPOIList.isEmpty()) {
                                 POI next = mPOIList.get(0);
                                 String info = repositoryInfo.getInfoOnPOI(start,goal,next);
-                                sendString(info, false);
-                                if (isTactile) {
-                                    tactileTask.execute(info, null, null);
+                                if (!info.isEmpty()) {
+                                    sendString(info, false);
+                                    if (isTactile) {
+                                        new AsyncRequest().execute("move_left", null, null);
+                                    }
                                 }
+                                printPOI(goal.toString() + " " + info);
                             }
-                            printPOI(goal.toString());
                         }
                     }
                     try {
@@ -659,10 +657,6 @@ public class LocalizationActivity extends Activity implements
             @Override
             public void run() {
                 while (true) {
-                        if (isWaiting) {
-                            sendString("0",true);
-                            continue;
-                        }
                         if (goal == null || poses[1] == null)
                             continue;
                         float[] q = poses[1].getRotationAsFloats();

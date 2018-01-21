@@ -79,7 +79,7 @@ public class RepositoryInfo {
 
     public String getInfoOnPOI(POI start, POI goal, POI next) {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
-
+        Log.i("TEST", String.valueOf(start.getId()) + String.valueOf(goal.getId()) + String.valueOf(next.getId()));
         Cursor cursor =
                 db.query(TABLE_INFO, COLUMNS_INFO, " start = ? AND goal = ? AND next = ? ",
                          new String[] { String.valueOf(start.getId()), String.valueOf(goal.getId()), String.valueOf(next.getId())},
@@ -87,8 +87,8 @@ public class RepositoryInfo {
         String info ="";
         if (cursor.moveToNext()) {
             info = cursor.getString(4);
-            DatabaseManager.getInstance().closeDatabase();
         }
+        DatabaseManager.getInstance().closeDatabase();
         return info;
     }
 

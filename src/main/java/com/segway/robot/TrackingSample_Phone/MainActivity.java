@@ -38,9 +38,11 @@ public class MainActivity extends Activity {
 
         startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
         RepositoryInfo info = new RepositoryInfo();
-        //info.clearRepository();
         RepositoryPath path = new RepositoryPath();
+        RepositoryPOI poi = new RepositoryPOI();
+        //poi.clearRepository();
         //path.clearRepository();
+        //info.clearRepository();
     }
     public void loadAdfClicked(View v) {
         mIsLoadAdf = mLoadAdfToggleButton.isChecked();
