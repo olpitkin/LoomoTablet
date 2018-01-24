@@ -1,16 +1,22 @@
 package com.segway.robot.TrackingSample_Phone.util;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.segway.robot.TrackingSample_Phone.R;
 import com.segway.robot.TrackingSample_Phone.model.Info;
+import com.segway.robot.TrackingSample_Phone.model.POI;
 import com.segway.robot.TrackingSample_Phone.model.Path;
+import com.segway.robot.TrackingSample_Phone.repository.RepositoryInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +31,7 @@ public class InfoListViewAdapter extends BaseAdapter {
     private static LayoutInflater inflater = null;
     private List<Info> infoList;
     private List<Info> selectedInfoList = new ArrayList<>();
-
+    RepositoryInfo repositoryInfo = new RepositoryInfo();
     public InfoListViewAdapter (Context context, List<Info> infoList) {
         this.mContext = context;
         this.infoList = infoList;
@@ -92,6 +98,37 @@ public class InfoListViewAdapter extends BaseAdapter {
                 }
             }
         });
+
+
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                final Info info = infoList.get(position);
+                View dialogView = inflater.inflate(R.layout.info_update_dialog, null);
+                dialogView.setMinimumWidth(500);
+                final AlertDialog alertD = new AlertDialog.Builder(mContext).create();
+                final EditText poiDesc = (EditText) dialogView.findViewById(R.id.info_desc);
+                Button infoUpdate = (Button) dialogView.findViewById(R.id.info_update);
+
+                poiDesc.setText(info.getDescription(), TextView.BufferType.EDITABLE);
+
+                infoUpdate.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        info.setDescription(poiDesc.getText().toString());
+                        repositoryInfo.updateInfo(info);
+                        alertD.dismiss();
+                        Toast toast = Toast.makeText(mContext,"info updated", Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                });
+
+                alertD.setView(dialogView);
+                alertD.show();
+                return false;
+            }
+        });
+
         return view;
     }
 

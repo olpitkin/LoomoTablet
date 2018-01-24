@@ -109,7 +109,8 @@ public class LocalizationActivity extends Activity implements
     private boolean isCorrecting = false;
     private int control;
 
-    private boolean isTactile = false;
+    private boolean isTactile = true;
+    private boolean isAudio = true;
 
     Thread movingThread;
     Thread controlThread;
@@ -218,7 +219,7 @@ public class LocalizationActivity extends Activity implements
     private void runDebug() {
             isTurning = true;
             turningLock = false;
-            POI poiTarget = repositoryPOI.getPOIonDescription("work").get(0);
+            POI poiTarget = repositoryPOI.getPOIonDescription("start").get(0);
             PathFinding pathFinding = new PathFinding();
             POI myLocation = new POI ("myLoc", "-", poses[1].translation[0], poses[1].translation[1]);
             POI startPoi = pathFinding.getNearestPOI(myLocation);
@@ -226,7 +227,6 @@ public class LocalizationActivity extends Activity implements
             mPOIList = pathFinding.getShortestPathTo(poiTarget);
             startMoving();
             controlRobot();
-
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -245,7 +245,13 @@ public class LocalizationActivity extends Activity implements
                 String IP = "127.0.0.1";
                 String answer = "not connected";
                 int PORT = 50000;
-                String command = "!PlayPattern,move_left";
+                String command = "!PlayPattern,";
+                if (arg[0].equals("TURNL")) {
+                    command += "move_left";
+                }
+                else if (arg[0].equals("TURNR")) {
+                    command += "move_right";
+                }
                 InetAddress ipAddress = InetAddress.getByName(IP);
                 DatagramSocket clientSocket = new DatagramSocket();
                 clientSocket.setSoTimeout(500);
@@ -627,9 +633,11 @@ public class LocalizationActivity extends Activity implements
                                 POI next = mPOIList.get(0);
                                 String info = repositoryInfo.getInfoOnPOI(start,goal,next);
                                 if (!info.isEmpty()) {
-                                    sendString(info, false);
+                                    if (isAudio) {
+                                        sendString(info, false);
+                                    }
                                     if (isTactile) {
-                                        new AsyncRequest().execute("move_left", null, null);
+                                        new AsyncRequest().execute(info, null, null);
                                     }
                                 }
                                 printPOI(goal.toString() + " " + info);
@@ -671,7 +679,7 @@ public class LocalizationActivity extends Activity implements
                         if (angDifDirty > 180) {
                             angDif = 360 - angDifDirty;
                         } else if (angDifDirty < -180) {
-                            angDif = -(360 + angDifDirty);
+                            angDif = 360 + angDifDirty;
                         }
                         if (isTurning) {
                             if (angDif < 5 && angDif > -5) {
@@ -679,8 +687,9 @@ public class LocalizationActivity extends Activity implements
                                 turningLock = false;
                             }
                             else if (angDif > 0) {
-                                final String log = " orientation: " + roll + " \n" +
-                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                final String log =
+                                        " orientation: " + roll + " \n" +
+                                  //      " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "TURNING";
@@ -692,8 +701,9 @@ public class LocalizationActivity extends Activity implements
                                     sendString("1", true);
                                 }
                             } else if (angDif < 0) {
-                                final String log = " orientation: " + roll + " \n" +
-                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                final String log =
+                                        " orientation: " + roll + " \n" +
+                                                //      " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "TURNING";
@@ -708,7 +718,7 @@ public class LocalizationActivity extends Activity implements
                         } else {
                             if (angDif < 15 && angDif > -15 && !isCorrecting) {
                                 final String log = " orientation: " + roll + " \n" +
-                                        " angleD:" + Math.round(angleDirty) + " \n" +
+                                        //     " angleD:" + Math.round(angleDirty) + " \n" +
                                         " angle: " + angle + " \n" +
                                         " dif: " + Math.round(angDifDirty) + " \n" +
                                         " dif2:" + Math.round(angDif) + " \n" + "MOVING";

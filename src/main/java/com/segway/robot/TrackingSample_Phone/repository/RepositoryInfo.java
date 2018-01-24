@@ -42,6 +42,21 @@ public class RepositoryInfo {
         return  CREATE_INFO_TABLE;
     }
 
+    public void updateInfo(Info info) {
+        SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_DESCRIPTION, info.getDescription());
+        //values.put(KEY_START, poi.getType());
+        //values.put(KEY_GOAL, poi.getX());
+        //values.put(KEY_NEXT, poi.getY());
+        //values.put(KEY_AREA_ID, poi.getAreaId());
+        db.update(TABLE_INFO, values, KEY_ID + " = ?",
+                new String[] { String.valueOf(info.getId())});
+
+        DatabaseManager.getInstance().closeDatabase();
+    }
+
     public void addInfo(Info info) {
         SQLiteDatabase db = DatabaseManager.getInstance().openDatabase();
         ContentValues values = new ContentValues();

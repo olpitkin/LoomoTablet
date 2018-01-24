@@ -41,11 +41,16 @@ public class RepositoryPath {
             throw new IllegalArgumentException("start");
         }
 
-        ContentValues values = new ContentValues();
-        values.put(KEY_START, start.getId());
-        values.put(KEY_END, end.getId());
+        ContentValues values1 = new ContentValues();
+        ContentValues values2 = new ContentValues();
+        values1.put(KEY_START, start.getId());
+        values1.put(KEY_END, end.getId());
 
-        db.insert(TABLE_PATH, null, values);
+        values2.put(KEY_START, end.getId());
+        values2.put(KEY_END, start.getId());
+
+        db.insert(TABLE_PATH, null, values1);
+        db.insert(TABLE_PATH, null, values2);
         DatabaseManager.getInstance().closeDatabase();
     }
 
@@ -57,11 +62,16 @@ public class RepositoryPath {
             throw new IllegalArgumentException("start or end");
         }
 
-        ContentValues values = new ContentValues();
-        values.put(KEY_START, path.getStart().getId());
-        values.put(KEY_END, path.getEnd().getId());
+        ContentValues values1 = new ContentValues();
+        ContentValues values2 = new ContentValues();
+        values1.put(KEY_START, path.getStart().getId());
+        values1.put(KEY_END, path.getEnd().getId());
 
-        db.insert(TABLE_PATH, null, values);
+        values2.put(KEY_START, path.getEnd().getId());
+        values2.put(KEY_END, path.getStart().getId());
+
+        db.insert(TABLE_PATH, null, values1);
+        db.insert(TABLE_PATH, null, values2);
         DatabaseManager.getInstance().closeDatabase();
     }
 
