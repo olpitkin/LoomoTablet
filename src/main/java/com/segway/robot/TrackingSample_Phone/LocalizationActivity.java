@@ -585,13 +585,14 @@ public class LocalizationActivity extends Activity implements
         mAudioButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendString("0", true);
-                isTurning = true;
-                turningLock = false;
-                isCorrecting = false;
-                start = null;
-                goal = null;
-                mPOIList = null;
+                isAudio = !isAudio;
+            }
+        });
+
+        mTactileButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isTactile = !isTactile;
             }
         });
 
