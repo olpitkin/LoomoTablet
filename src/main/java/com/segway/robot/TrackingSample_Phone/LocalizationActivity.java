@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.google.atap.tangoservice.Tango;
 import com.google.atap.tangoservice.TangoAreaDescriptionMetaData;
@@ -66,10 +67,10 @@ public class LocalizationActivity extends Activity implements
     private TextView path;
     private int relocCount;
 
-    private Button mSaveAdfButton;
-    private Button mManualButton;
-    private Button mAudioButton;
-    private Button mTactileButton;
+  //  private Button mSaveAdfButton;
+    private ToggleButton mManualButton;
+    private ToggleButton mAudioButton;
+    private ToggleButton mTactileButton;
     private Button debugButton;
 
     private Button wButton;
@@ -110,7 +111,7 @@ public class LocalizationActivity extends Activity implements
     private boolean isCorrecting = false;
     private int control;
 
-    private boolean isTactile = true;
+    private boolean isTactile = false;
     private boolean isAudio = true;
     private boolean isManual = false;
 
@@ -478,7 +479,7 @@ public class LocalizationActivity extends Activity implements
     }
 
     private void setupTextViewsAndButtons(Tango tango, boolean isLearningMode, boolean isLoadAdf) {
-        mSaveAdfButton = (Button) findViewById(R.id.save_adf_button);
+       // mSaveAdfButton = (Button) findViewById(R.id.save_adf_button);
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
@@ -488,9 +489,11 @@ public class LocalizationActivity extends Activity implements
         path = (TextView) findViewById(R.id.best_path);
 
         mEditText = (EditText) findViewById(R.id.etIP);
-        mManualButton = (Button) findViewById(R.id.btnManual);
-        mAudioButton = (Button) findViewById(R.id.btnAudio);
-        mTactileButton = (Button) findViewById(R.id.btnTactile);
+        mManualButton = (ToggleButton) findViewById(R.id.btnManual);
+        mAudioButton = (ToggleButton) findViewById(R.id.btnAudio);
+        mTactileButton = (ToggleButton) findViewById(R.id.btnTactile);
+
+        mAudioButton.setChecked(true);
 
         wButton = (Button) findViewById(R.id.control_w);
         sButton = (Button) findViewById(R.id.control_s);
@@ -499,11 +502,11 @@ public class LocalizationActivity extends Activity implements
 
         debugButton = (Button) findViewById(R.id.debug_button);
 
-        if (isLearningMode) {
-            mSaveAdfButton.setEnabled(true);
-        } else {
-            mSaveAdfButton.setEnabled(false);
-        }
+//        if (isLearningMode) {
+//            mSaveAdfButton.setEnabled(true);
+//        } else {
+//            mSaveAdfButton.setEnabled(false);
+//        }
 
         if (isLoadAdf) {
             ArrayList<String> fullUuidList;

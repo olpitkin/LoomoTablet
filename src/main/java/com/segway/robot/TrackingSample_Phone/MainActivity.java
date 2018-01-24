@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
     public static final String LOAD_ADF = "com.projecttango.examples.java.helloareadescription.loadadf";
     public static final int REQUEST_CODE_TANGO_PERMISSION = 0;
 
-    private ToggleButton mLearningModeToggleButton;
+    //private ToggleButton mLearningModeToggleButton;
     private ToggleButton mLoadAdfToggleButton;
 
     private boolean mIsUseAreaLearning;
@@ -30,10 +30,11 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_start);
         setTitle(R.string.app_name);
 
-        mLearningModeToggleButton = (ToggleButton) findViewById(R.id.learning_mode);
+       // mLearningModeToggleButton = (ToggleButton) findViewById(R.id.learning_mode);
         mLoadAdfToggleButton = (ToggleButton) findViewById(R.id.load_adf);
 
-        mIsUseAreaLearning = mLearningModeToggleButton.isChecked();
+       // mIsUseAreaLearning = mLearningModeToggleButton.isChecked();
+        mLoadAdfToggleButton.setChecked(true);
         mIsLoadAdf = mLoadAdfToggleButton.isChecked();
 
         startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE), 0);
@@ -48,7 +49,7 @@ public class MainActivity extends Activity {
         mIsLoadAdf = mLoadAdfToggleButton.isChecked();
     }
     public void learningModeClicked(View v) {
-        mIsUseAreaLearning = mLearningModeToggleButton.isChecked();
+        //mIsUseAreaLearning = mLearningModeToggleButton.isChecked();
     }
     public void startClicked(View v) {
         startAreaDescriptionActivity();
