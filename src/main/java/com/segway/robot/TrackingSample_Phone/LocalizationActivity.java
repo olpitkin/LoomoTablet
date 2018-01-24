@@ -58,13 +58,32 @@ public class LocalizationActivity extends Activity implements
         SetAdfNameDialog.CallbackListener,
         SaveAdfTask.SaveAdfListener {
 
+    // UI
+    private TextView logText;
+    private TextView mUuidTextView;
+    private TextView mRelocalizationTextView;
+    private TextView relocPose;
+    private TextView path;
+    private int relocCount;
+
+    private Button mSaveAdfButton;
+    private Button mManualButton;
+    private Button mAudioButton;
+    private Button mTactileButton;
+    private Button debugButton;
+
+    private Button wButton;
+    private Button sButton;
+    private Button aButton;
+    private Button dButton;
+
     // LOOMO
     private static final String TAG = "TrackingActivity_Phone";
     private EditText mEditText;
-
     private String mRobotIP;
     private MobileMessageRouter mMobileMessageRouter = null;
     private MessageConnection mMessageConnection = null;
+
     private LinkedList<POI> mPOIList;
     private RepositoryPOI repositoryPOI = new RepositoryPOI();
     private RepositoryInfo repositoryInfo = new RepositoryInfo();
@@ -74,27 +93,9 @@ public class LocalizationActivity extends Activity implements
     private TangoConfig mConfig;
     private TangoPoseData poses[] = new TangoPoseData[3];
 
-    private TextView logText;
-    private TextView mUuidTextView;
-    private TextView mRelocalizationTextView;
-    private TextView relocPose;
-    private TextView path;
-    private int relocCount;
-
-    private Button mSaveAdfButton;
-    private Button mSendButton;
-    private Button mStopButton;
-    private Button wButton;
-    private Button sButton;
-    private Button aButton;
-    private Button dButton;
-    private Button debugButton;
-
     private boolean mIsRelocalized;
     private boolean mIsLearningMode;
     private boolean mIsConstantSpaceRelocalize;
-    private boolean isManual = false;
-
     private SaveAdfTask mSaveAdfTask;
     private final Object mSharedLock = new Object();
 
@@ -111,6 +112,7 @@ public class LocalizationActivity extends Activity implements
 
     private boolean isTactile = true;
     private boolean isAudio = true;
+    private boolean isManual = false;
 
     Thread movingThread;
     Thread controlThread;
@@ -469,7 +471,7 @@ public class LocalizationActivity extends Activity implements
                         fullUuidList.get(0));
             }
         }
-        // TODO IF DEPTH
+        // TODO DEPTH OBSTACLE RECOGNITION
         //config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         //config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
         return config;
@@ -486,8 +488,9 @@ public class LocalizationActivity extends Activity implements
         path = (TextView) findViewById(R.id.best_path);
 
         mEditText = (EditText) findViewById(R.id.etIP);
-        mSendButton = (Button) findViewById(R.id.btnSend);
-        mStopButton = (Button) findViewById(R.id.btnStop);
+        mManualButton = (Button) findViewById(R.id.btnManual);
+        mAudioButton = (Button) findViewById(R.id.btnAudio);
+        mTactileButton = (Button) findViewById(R.id.btnTactile);
 
         wButton = (Button) findViewById(R.id.control_w);
         sButton = (Button) findViewById(R.id.control_s);
@@ -571,7 +574,7 @@ public class LocalizationActivity extends Activity implements
             }
         });
 
-        mSendButton.setOnClickListener(new View.OnClickListener() {
+        mManualButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 isManual = !isManual;
@@ -579,7 +582,7 @@ public class LocalizationActivity extends Activity implements
             }
         });
 
-        mStopButton.setOnClickListener(new View.OnClickListener() {
+        mAudioButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sendString("0", true);

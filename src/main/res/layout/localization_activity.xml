@@ -18,7 +18,7 @@
             >
 
             <ToggleButton
-                android:id="@+id/btnSend"
+                android:id="@+id/btnManual"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
                 android:text="MANUAL"
@@ -26,11 +26,22 @@
                 android:textOff="MANUAL OFF"
                 />
 
-            <Button
-                android:id="@+id/btnStop"
+            <ToggleButton
+                android:id="@+id/btnAudio"
                 android:layout_width="150dp"
                 android:layout_height="wrap_content"
-                android:text="STOP"
+                android:text="Audio"
+                android:textOn="Audio ON"
+                android:textOff="Audio OFF"
+                />
+
+            <ToggleButton
+                android:id="@+id/btnTactile"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:text="Tactile"
+                android:textOn="Tactile ON"
+                android:textOff="Tactile OFF"
                 />
 
             <Button
@@ -95,20 +106,11 @@
             android:textSize="23sp" />
 
         <Button
-            android:id="@+id/save_adf_button"
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/etIP"
-            android:layout_marginLeft="10dp"
-            android:onClick="saveAdfClicked"
-            android:text="@string/save_adf" />
-
-        <Button
             android:id="@+id/save_poi_button"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:layout_above="@+id/etIP"
-            android:layout_marginLeft="160dp"
+            android:layout_alignParentStart="true"
             android:onClick="onClick"
             android:text="@string/save_poi" />
 
