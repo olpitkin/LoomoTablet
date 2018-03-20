@@ -185,9 +185,6 @@ public class LocalizationActivity extends Activity implements
                     }
                 });
                     switch (mes) {
-                        case "debug":
-                            runDebug();
-                            break;
                         default:
                             //mPOIList = (LinkedList) repositoryPOI.getPOIonDescription(mes);
                             POI poiTarget = repositoryPOI.getPOIonDescription(mes).get(0);
@@ -199,6 +196,7 @@ public class LocalizationActivity extends Activity implements
                             POI startPoi = pathFinding.getNearestPOI(myLocation);
                             pathFinding.computePaths(startPoi);
                             mPOIList = pathFinding.getShortestPathTo(poiTarget);
+                            new AsyncRequest().execute("GO", null, null);
                             isTurning = true;
                             turningLock = false;
                             break;
@@ -220,6 +218,7 @@ public class LocalizationActivity extends Activity implements
     };
 
     private void runDebug() {
+        if (false) {
             isTurning = true;
             turningLock = false;
             POI poiTarget = repositoryPOI.getPOIonDescription("start").get(0);
@@ -230,6 +229,10 @@ public class LocalizationActivity extends Activity implements
             mPOIList = pathFinding.getShortestPathTo(poiTarget);
             startMoving();
             controlRobot();
+        }
+
+        new AsyncRequest().execute("TURNR", null, null);
+
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -250,10 +253,16 @@ public class LocalizationActivity extends Activity implements
                 int PORT = 50000;
                 String command = "!PlayPattern,";
                 if (arg[0].equals("TURNL")) {
-                    command += "move_left";
+                    command += "turn_left";
                 }
                 else if (arg[0].equals("TURNR")) {
-                    command += "move_right";
+                    command += "turn_right";
+                }
+                else if (arg[0].equals("GO")) {
+                    command += "move_forward";
+                }
+                else if (arg[0].equals("GOAL")) {
+                    command += "two_circles";
                 }
                 InetAddress ipAddress = InetAddress.getByName(IP);
                 DatagramSocket clientSocket = new DatagramSocket();
@@ -483,7 +492,7 @@ public class LocalizationActivity extends Activity implements
         mUuidTextView = (TextView) findViewById(R.id.adf_uuid_textview);
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
         mEditText = (EditText) findViewById(R.id.etIP);
-        mEditText.setText("192.168.1.2");
+        mEditText.setText("192.168.1.3");
         relocPose = (TextView) findViewById(R.id.relocalization_pose_textview);
         logText = (TextView) findViewById(R.id.log);
         path = (TextView) findViewById(R.id.best_path);
@@ -625,6 +634,7 @@ public class LocalizationActivity extends Activity implements
                             if (mPOIList != null && mPOIList.isEmpty()) {
                                 printPOI("");
                                 sendString("GOAL", false);
+                                new AsyncRequest().execute("GOAL", null, null);
                                 isTurning = true;
                                 turningLock = false;
                                 isCorrecting = false;
