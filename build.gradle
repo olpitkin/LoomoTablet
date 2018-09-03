@@ -9,7 +9,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.1.4'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
@@ -19,7 +19,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion '26.0.2'
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "com.segway.robot.TrackingSample_Phone"
@@ -54,16 +54,15 @@ repositories {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.segway.robot:mobile-connectivity-sdk:0.5.98'
-    testCompile 'junit:junit:4.12'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations' })
+    implementation 'com.android.support:appcompat-v7:25.3.1'
+    implementation 'com.segway.robot:mobile-connectivity-sdk:0.5.104'
+    testImplementation 'junit:junit:4.12'
 
     // GOOGLE TANGO
-    compile 'com.google.tango:sdk-base:1.54'
-    compile 'com.google.tango:support-base:1.54'
-    compile 'com.github.erz05:JoyStick:1.1.0'
+    implementation 'com.google.tango:sdk-base:1.54'
+    implementation 'com.google.tango:support-base:1.54'
+    implementation 'com.github.erz05:JoyStick:1.1.0'
 }
